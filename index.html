@@ -796,10 +796,42 @@ const Store = (function(){
   let _mem = {};
   let _ok = false;
   try { localStorage.setItem('__t','1'); localStorage.removeItem('__t'); _ok=true; } catch(e){}
+
+  function cookieGet(k){
+    const m = document.cookie.match('(?:^|;)\\s*teip_'+k+'=([^;]*)');
+    return m ? decodeURIComponent(m[1]) : null;
+  }
+  function cookieSet(k,v){
+    const exp = new Date(Date.now()+365*24*60*60*1000).toUTCString();
+    document.cookie='teip_'+k+'='+encodeURIComponent(v)+';expires='+exp+';path=/;SameSite=Lax';
+  }
+  function cookieDel(k){
+    document.cookie='teip_'+k+'=;expires=Thu, 01 Jan 1970 00:00:00 UTC;path=/';
+  }
+
   return {
-    get(k){ try{ if(_ok) return localStorage.getItem(k); } catch(e){} return _mem[k]||null; },
-    set(k,v){ try{ if(_ok){ localStorage.setItem(k,v); return; } } catch(e){} _mem[k]=v; },
-    remove(k){ try{ if(_ok){ localStorage.removeItem(k); return; } } catch(e){} delete _mem[k]; }
+    get(k){
+      try { if(_ok){ const v=localStorage.getItem(k); if(v!==null) return v; } } catch(e){}
+      // Fallback to cookie (resilient across localStorage clears)
+      const cv = cookieGet(k);
+      if(cv!==null){
+        // Restore to localStorage if available
+        try { if(_ok) localStorage.setItem(k,cv); } catch(e){}
+        return cv;
+      }
+      return _mem[k]||null;
+    },
+    set(k,v){
+      try { if(_ok){ localStorage.setItem(k,v); } } catch(e){}
+      _mem[k]=v;
+      // Persist credentials in cookie for cross-session resilience
+      if(k==='gh_token'||k==='gh_repo') cookieSet(k,v);
+    },
+    remove(k){
+      try { if(_ok){ localStorage.removeItem(k); } } catch(e){}
+      delete _mem[k];
+      cookieDel(k);
+    }
   };
 })();
 
@@ -995,14 +1027,10 @@ async function ghTestAndSave(){
 
 async function ghSync(){
   if(!GH.configured()){ alert('Configura o GitHub primeiro nas Configurações.'); return; }
-  if(location.protocol === 'file:'){
-    ghShowStatus('✗ Não é possível sincronizar com file:// no Chrome. Usa Edge, Firefox ou o GitHub Pages.', false);
-    return;
-  }
   ghShowStatus('A sincronizar...', true);
   const ok = await ghSave(buildSavePayload());
   if(ok){ showSaveToast(); ghShowStatus(`✓ Sincronizado ${new Date().toLocaleTimeString()}`, true); }
-  else    ghShowStatus('✗ Erro na sincronização.', false);
+  else    ghShowStatus('✗ Erro na sincronização — verifica o token e repositório.', false);
 }
 
 async function ghLoadFromGitHub(){
@@ -1125,9 +1153,8 @@ function save(){
     if(rep) cfg._ghRepo = rep;
     Store.set('teip2', JSON.stringify(cfg));
     showSaveToast();
-    // Auto-sync to GitHub — skip if file:// (Chrome blocks fetch)
-    const isFileProtocol = location.protocol === 'file:';
-    if(GH.configured() && !isFileProtocol){
+    // Auto-sync to GitHub (debounced 5s)
+    if(GH.configured()){
       if(save._ghTimer) clearTimeout(save._ghTimer);
       save._ghTimer = setTimeout(async ()=>{
         save._ghTimer = null;
@@ -1135,8 +1162,6 @@ function save(){
         if(ok) ghShowStatus(`✓ Sincronizado ${new Date().toLocaleTimeString()}`, true);
         else    ghShowStatus(`⚠ Erro — clica "⬆ Forçar envio"`, false);
       }, 5000);
-    } else if(isFileProtocol && GH.configured()){
-      ghShowStatus('⚠ file:// — abre via GitHub Pages para sincronizar', false);
     }
   } catch(e){ console.error('save error:', e); }
 }
@@ -3668,17 +3693,17 @@ function rptHeader(titulo, anoLetivo, anoAnt){
 }
 
 function rptCicloTable(ciclo, ano, anoAnt, meta){
+  // Returns ARRAY of {titulo, html} — one per ano escolar
   const anosEsc = CICLO_ANOS[ciclo];
-  let html = '';
+  const pages = [];
   anosEsc.forEach(ae=>{
     const aeAnt = anoAnt ? ae-1 : null;
     const discs = D.disc[ciclo]?.[ae] || [];
     if(!discs.length) return;
-    html += `<div class="rpt-subtitle">${ae}.º Ano</div>`;
-    html += `<table class="rpt-table"><thead><tr>
-      <th class="left" style="width:130px">Disciplina</th>
-      <th colspan="3">${anoAnt||'—'} (${aeAnt?aeAnt+'.º Ano':'—'})</th>
-      <th colspan="3">${ano} (${ae}.º Ano)</th>
+    let html = `<table class="rpt-table"><thead><tr>
+      <th class="left" style="width:140px">Disciplina</th>
+      <th colspan="3">${anoAnt||'—'} — ${aeAnt?aeAnt+'.º Ano':'—'}</th>
+      <th colspan="3">${ano} — ${ae}.º Ano</th>
       <th class="rpt-teip">Meta TEIP</th>
     </tr><tr>
       <th class="left"></th>
@@ -3686,7 +3711,7 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
       <th>1.º P</th><th>2.º P</th><th>3.º P</th>
       <th class="rpt-teip"></th>
     </tr></thead><tbody>`;
-    const medAnt=[],medAt=[];
+    const medAnt=[], medAt=[];
     discs.forEach(d=>{
       const vA=[1,2,3].map(p=>anoAnt&&aeAnt?getRes(ciclo,anoAnt,aeAnt,d,p):null);
       const vB=[1,2,3].map(p=>getRes(ciclo,ano,ae,d,p));
@@ -3702,21 +3727,22 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
       <td colspan="3">${rptFmt(mB)}</td>
       <td class="rpt-teip">${meta!==null?meta+'%':'—'}</td></tr>`;
     html+=`</tbody></table>`;
+    pages.push({titulo:`${CICLO_NOME[ciclo]} — ${ae}.º Ano`, html});
   });
-  return html;
+  return pages;
 }
 
 function rptSecTable(tipo){
+  // Returns ARRAY of {titulo, html} — one per course
   const ano=getAno(), anoAnt=getAnoAnterior(ano);
   const cursos=(D.secCursos[ano]||[]).filter(c=>c.tipo===tipo);
-  if(!cursos.length) return '<p style="font-size:8pt;color:#6b7280">Sem cursos configurados.</p>';
-  let html='';
-  cursos.forEach(curso=>{
+  if(!cursos.length) return [{titulo:'Sem cursos', html:'<p style="font-size:8pt;color:#6b7280">Sem cursos configurados.</p>'}];
+  return cursos.map(curso=>{
     const cursoAnt=getSecCursoAnt(curso,anoAnt);
     const discs=curso.disc||[];
-    html+=`<div class="rpt-subtitle">${curso.nome}${curso.turma?` <span class="rpt-badge">${curso.turma}</span>`:''}</div>`;
+    let html=`<div class="rpt-subtitle">${curso.nome}${curso.turma?` <span class="rpt-badge">${curso.turma}</span>`:''}</div>`;
     html+=`<table class="rpt-table"><thead><tr>
-      <th class="left" style="width:130px">Disciplina</th>`;
+      <th class="left" style="width:140px">Disciplina</th>`;
     if(cursoAnt) html+=`<th colspan="3">${anoAnt} — ${cursoAnt.nome}</th>`;
     html+=`<th colspan="3">${ano} — ${curso.nome}</th></tr>
     <tr><th class="left"></th>`;
@@ -3729,8 +3755,8 @@ function rptSecTable(tipo){
       html+=`</tr>`;
     });
     html+=`</tbody></table>`;
+    return {titulo:`${tipo==='CH'?'Secundário C-H':'Profissional'} — ${curso.nome}`, html};
   });
-  return html;
 }
 
 function rptDeptTable(){
@@ -3839,23 +3865,29 @@ function gerarRelatorio(tipo){
     </div>`;
   };
 
+  // Helper: add array of pages from rptCicloTable/rptSecTable
+  const addPages=(arr)=>{
+    if(Array.isArray(arr)){
+      arr.forEach(p=>addPage(p.titulo, p.html));
+    } else {
+      addPage('Relatório', arr);
+    }
+  };
+
   if(tipo==='c1'||tipo==='completo'){
-    addPage('Análise de Resultados — 1.º Ciclo',
-      rptCicloTable('c1', ano, anoAnt, (D.metas['c1']||{})[ano]??null));
+    addPages(rptCicloTable('c1', ano, anoAnt, (D.metas['c1']||{})[ano]??null));
   }
   if(tipo==='c2'||tipo==='completo'){
-    addPage('Análise de Resultados — 2.º Ciclo',
-      rptCicloTable('c2', ano, anoAnt, (D.metas['c2']||{})[ano]??null));
+    addPages(rptCicloTable('c2', ano, anoAnt, (D.metas['c2']||{})[ano]??null));
   }
   if(tipo==='c3'||tipo==='completo'){
-    addPage('Análise de Resultados — 3.º Ciclo',
-      rptCicloTable('c3', ano, anoAnt, (D.metas['c3']||{})[ano]??null));
+    addPages(rptCicloTable('c3', ano, anoAnt, (D.metas['c3']||{})[ano]??null));
   }
   if(tipo==='sec'||tipo==='completo'){
-    addPage('Análise de Resultados — Secundário C-Humanístico', rptSecTable('CH'));
+    addPages(rptSecTable('CH'));
   }
   if(tipo==='prof'||tipo==='completo'){
-    addPage('Análise de Resultados — Ensino Profissional', rptSecTable('Prof'));
+    addPages(rptSecTable('Prof'));
   }
   if(tipo==='dept'||tipo==='completo'){
     addPage('Análise de Resultados — Departamentos', rptDeptTable());
