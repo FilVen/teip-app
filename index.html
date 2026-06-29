@@ -807,26 +807,37 @@ const GH = {
 
 async function ghSave(payload){
   if(!GH.configured()) return false;
-  try {
-    const headers = {
-      'Authorization': `token ${GH.token}`,
-      'Content-Type': 'application/json',
-      'Accept': 'application/vnd.github.v3+json'
-    };
-    const url = `https://api.github.com/repos/${GH.repo}/contents/${GH.file}`;
-    // Get current SHA (needed for update)
-    let sha = null;
+  const headers = {
+    'Authorization': `token ${GH.token}`,
+    'Content-Type': 'application/json',
+    'Accept': 'application/vnd.github.v3+json'
+  };
+  const url = `https://api.github.com/repos/${GH.repo}/contents/teip-dados.json`;
+  const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
+
+  // Try up to 3 times — refresh SHA on each attempt
+  for(let attempt = 0; attempt < 3; attempt++){
     try {
-      const r = await fetch(url, {headers});
-      if(r.ok){ const j=await r.json(); sha=j.sha; }
-    } catch(e){}
-    // Encode content as base64
-    const content = btoa(unescape(encodeURIComponent(JSON.stringify(payload, null, 2))));
-    const body = { message: `Actualização ${new Date().toISOString()}`, content };
-    if(sha) body.sha = sha;
-    const r2 = await fetch(url, {method:'PUT', headers, body:JSON.stringify(body)});
-    return r2.ok;
-  } catch(e){ return false; }
+      let sha = null;
+      try {
+        const r = await fetch(url, {headers});
+        if(r.ok){ const j = await r.json(); sha = j.sha; }
+      } catch(e){}
+
+      const body = {
+        message: `TEIP ${new Date().toISOString().slice(0,16)}`,
+        content
+      };
+      if(sha) body.sha = sha;
+
+      const r2 = await fetch(url, {method:'PUT', headers, body:JSON.stringify(body)});
+      if(r2.ok) return true;
+      if(r2.status !== 409) return false;
+      // 409 = SHA conflict, wait briefly and retry with fresh SHA
+      await new Promise(res => setTimeout(res, 1000 + attempt * 500));
+    } catch(e){ return false; }
+  }
+  return false;
 }
 
 async function ghLoad(forceToken, forceRepo){
@@ -944,26 +955,12 @@ async function ghLoadFromGitHub(){
 function buildSavePayload(){
   const tok = Store.get('gh_token');
   const rep = Store.get('gh_repo');
-
-  // Include ALL data in D.res that differs from SAMPLE_RES (belt-and-suspenders)
-  // This catches cases where userOverrides was cleared but D.res still has the data
-  const allUserRes = Object.assign({}, userOverrides);
-  Object.keys(D.res).forEach(k=>{
-    if(SAMPLE_RES[k]===undefined) allUserRes[k]=D.res[k]; // not in sample → user data
-    else if(D.res[k]!==SAMPLE_RES[k]) allUserRes[k]=D.res[k]; // differs from sample → override
-  });
-
-  const allUserTaxa = Object.assign({}, userTaxaOverrides);
-  Object.keys(D.taxaRes).forEach(k=>{
-    if(SAMPLE_TAXA[k]===undefined) allUserTaxa[k]=D.taxaRes[k];
-    else if(D.taxaRes[k]!==SAMPLE_TAXA[k]) allUserTaxa[k]=D.taxaRes[k];
-  });
-
   return {
-    _version: 3,
+    _version: 4,
     _saved: new Date().toISOString(),
-    userOverrides: allUserRes,
-    userTaxaOverrides: allUserTaxa,
+    _entries: Object.keys(D.res).length,
+    userOverrides:     Object.assign({}, D.res),
+    userTaxaOverrides: Object.assign({}, D.taxaRes),
     cfg: {
       anoAtual:   D.anoAtual,
       anos:       D.anos,
@@ -972,10 +969,7 @@ function buildSavePayload(){
       turmasTaxa: D.turmasTaxa,
       metas:      D.metas
     },
-    gh: {
-      repo: rep||'',
-      tok:  tok ? btoa(tok) : ''
-    }
+    gh: { repo: rep||'', tok: tok ? btoa(tok) : '' }
   };
 }
 
@@ -1007,7 +1001,16 @@ function applyLoadedData(data){
     '2024/2025':{0:['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'],5:['A','B','C','D'],6:['A','B','C','D'],7:['A','B','C'],8:['A','B','C','D'],9:['A','B','C','D','E']},
     '2025/2026':{0:['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'],5:['A','B','C','D'],6:['A','B','C','D'],7:['A','B','C'],8:['A','B','C','D'],9:['A','B','C','D','E']}
   };
+  // Debug
+  console.log('applyLoadedData: anoAtual=', D.anoAtual, 'D.res keys=', Object.keys(D.res).length, 'userOverrides keys=', Object.keys(userOverrides).length);
+  // Sample key check
+  const sampleKey = Object.keys(userOverrides)[0];
+  console.log('First userOverrides key:', sampleKey, '=', userOverrides[sampleKey]);
   buildRes();
+  console.log('After buildRes: D.res keys=', Object.keys(D.res).length);
+  // Check a specific key
+  const testKey = `c2|2025/2026|5|PORT|1`;
+  console.log('c2|2025/2026|5|PORT|1 =', D.res[testKey]);
   save();
   initSelects();
   render();
@@ -1019,27 +1022,13 @@ function applyLoadedData(data){
 
 function save(){
   try {
-    // Rebuild userOverrides from D.res to catch any data that was set directly
-    Object.keys(D.res).forEach(k=>{
-      if(SAMPLE_RES[k]===undefined || D.res[k]!==SAMPLE_RES[k])
-        userOverrides[k]=D.res[k];
-    });
-    Object.keys(D.taxaRes).forEach(k=>{
-      if(SAMPLE_TAXA[k]===undefined || D.taxaRes[k]!==SAMPLE_TAXA[k])
-        userTaxaOverrides[k]=D.taxaRes[k];
-    });
-
-    Store.set('teip_overrides', JSON.stringify({
-      res: userOverrides,
-      taxaRes: userTaxaOverrides
-    }));
+    // Save ALL of D.res — simplest and most reliable approach
+    userOverrides     = Object.assign({}, D.res);
+    userTaxaOverrides = Object.assign({}, D.taxaRes);
+    Store.set('teip_overrides', JSON.stringify({res: userOverrides, taxaRes: userTaxaOverrides}));
     const cfg = {
-      anoAtual: D.anoAtual,
-      anos: D.anos,
-      disc: D.disc,
-      secCursos: D.secCursos,
-      turmasTaxa: D.turmasTaxa,
-      metas: D.metas
+      anoAtual: D.anoAtual, anos: D.anos, disc: D.disc,
+      secCursos: D.secCursos, turmasTaxa: D.turmasTaxa, metas: D.metas
     };
     const tok = Store.get('gh_token');
     const rep = Store.get('gh_repo');
@@ -1047,12 +1036,14 @@ function save(){
     if(rep) cfg._ghRepo = rep;
     Store.set('teip2', JSON.stringify(cfg));
     showSaveToast();
-    // Auto-sync to GitHub (debounced 3s)
     if(GH.configured()){
-      clearTimeout(save._ghTimer);
-      save._ghTimer = setTimeout(()=> ghSave(buildSavePayload()).then(ok=>{
+      if(save._ghTimer) clearTimeout(save._ghTimer);
+      save._ghTimer = setTimeout(async ()=>{
+        save._ghTimer = null;
+        const ok = await ghSave(buildSavePayload());
         if(ok) ghShowStatus(`✓ Sincronizado ${new Date().toLocaleTimeString()}`, true);
-      }), 3000);
+        else    ghShowStatus(`⚠ Erro — clica "⬆ Forçar envio"`, false);
+      }, 5000);
     }
   } catch(e){ console.error('save error:', e); }
 }
