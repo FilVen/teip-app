@@ -1073,10 +1073,6 @@ async function ghLoadFromGitHub(){
     ghShowStatus('✗ Sem dados no GitHub ou erro de ligação.', false);
     return;
   }
-  // Debug: show what we got
-  const nOverrides = Object.keys(data.userOverrides||{}).length;
-  const nTaxa = Object.keys(data.userTaxaOverrides||{}).length;
-  const hasCfg = !!data.cfg;
   const saved = data._saved || 'desconhecido';
   console.log('ghLoad data:', data);
   ghShowStatus(`A aplicar: ${nOverrides} resultados, ${nTaxa} taxa, cfg=${hasCfg}, guardado em ${saved}`, true);
@@ -1149,17 +1145,9 @@ function applyLoadedData(data){
     '2025/2026':{0:['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'],5:['A','B','C','D'],6:['A','B','C','D'],7:['A','B','C'],8:['A','B','C','D'],9:['A','B','C','D','E']}
   };
   buildRes();
-  // Debug: check periods available for PORT in c2 2025/2026
-  const p1=D.res['c2|2025/2026|5|PORT|1'], p2=D.res['c2|2025/2026|5|PORT|2'], p3=D.res['c2|2025/2026|5|PORT|3'];
-  const p1ant=D.res['c2|2024/2025|4|PORT|1'], p3ant=D.res['c2|2024/2025|4|PORT|3'];
-  // Debug taxa positivas
-  const taxa5A1=D.taxaRes['2025/2026|5|A|1'], taxa5A2=D.taxaRes['2025/2026|5|A|2'], taxa5A3=D.taxaRes['2025/2026|5|A|3'];
-  const taxaKeys = Object.keys(D.taxaRes).filter(k=>k.includes('2025/2026')).slice(0,5);
-  window._dbg && _dbg(`buildRes: D.res=${Object.keys(D.res).length} PORT 5º: 1P=${p1} 2P=${p2} 3P=${p3} | taxa A 5º: 1P=${taxa5A1} 2P=${taxa5A2} 3P=${taxa5A3} | taxaKeys=${JSON.stringify(taxaKeys)}`);
   save();
   initSelects();
   render();
-  window._dbg && _dbg(`Após render: tab activo=${document.querySelector('.tab-btn.active')?.textContent||'?'}`);
   if(data.gh && data.gh.tok){
     const ind=document.getElementById('gh-sync-indicator'); if(ind) ind.style.display='';
   }
@@ -4201,15 +4189,6 @@ initSelects();
 updateImAnoEsc();
 render();
 
-// Debug status div — visible on screen
-(function(){
-  const dbg = document.createElement('div');
-  dbg.id = 'gh-debug';
-  dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#1e3a5f;color:#a5f3fc;font-size:.68rem;padding:4px 10px;z-index:9999;font-family:monospace;max-height:80px;overflow:auto';
-  document.body.appendChild(dbg);
-  window._dbg = msg => { dbg.innerHTML = new Date().toLocaleTimeString() + ' ' + msg + '<br>' + dbg.innerHTML; };
-})();
-
 // Load saved GitHub credentials and auto-load data
 (function(){
   const t = Store.get('gh_token');
@@ -4222,19 +4201,15 @@ render();
   function tryLoad(token, repo){
     const ind = document.getElementById('gh-sync-indicator');
     if(ind) ind.style.display='';
-    window._dbg && _dbg('A carregar do GitHub...');
     ghShowStatus('⏳ A carregar dados do GitHub...', true);
     ghLoad(token, repo).then(data => {
       if(data){
-        window._dbg && _dbg(`GitHub OK: ${Object.keys(data.userOverrides||{}).length} entradas, anos=${JSON.stringify((data.cfg||{}).anos)}, metas=${JSON.stringify((data.cfg||{}).metas)}`);
         applyLoadedData(data);
         ghShowStatus(`✓ Dados carregados (${new Date().toLocaleTimeString()})`, true);
       } else {
-        window._dbg && _dbg('GitHub: sem dados ou erro');
         ghShowStatus('⚠ Sem dados no GitHub ainda — a usar dados locais', false);
       }
     }).catch(e=>{
-      window._dbg && _dbg('GitHub ERRO: ' + e.message);
       ghShowStatus('⚠ Erro ao ligar ao GitHub — a usar dados locais', false);
     });
   }
