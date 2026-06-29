@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <!-- Background rounded square -->
+  <rect width="512" height="512" rx="90" fill="#1a3a6b"/>
+  <!-- Inner subtle overlay -->
+  <rect x="32" y="32" width="448" height="448" rx="65" fill="#1e4480" opacity="0.35"/>
+  <!-- Top accent line -->
+  <rect x="60" y="44" width="392" height="10" rx="5" fill="#4a90d9" opacity="0.7"/>
+
+  <!-- T: crossbar + stem, centered at x=68..178 -->
+  <rect x="62"  y="158" width="118" height="28" rx="7" fill="white"/>
+  <rect x="107" y="158" width="28"  height="196" rx="7" fill="white"/>
+
+  <!-- E: left bar + 3 horizontals, x=200..308 -->
+  <rect x="200" y="158" width="28"  height="196" rx="7" fill="white"/>
+  <rect x="200" y="158" width="108" height="28"  rx="7" fill="white"/>
+  <rect x="200" y="244" width="88"  height="24"  rx="6" fill="white"/>
+  <rect x="200" y="326" width="108" height="28"  rx="7" fill="white"/>
+
+  <!-- I: top cap + stem + bottom cap, x=330..388 -->
+  <rect x="324" y="158" width="68"  height="28"  rx="7" fill="white"/>
+  <rect x="344" y="158" width="28"  height="196" rx="7" fill="white"/>
+  <rect x="324" y="326" width="68"  height="28"  rx="7" fill="white"/>
+
+  <!-- P: stem + rounded bump -->
+  <!-- stem -->
+  <rect x="412" y="158" width="28" height="196" rx="7" fill="white"/>
+  <!-- top cap extends right -->
+  <rect x="412" y="158" width="60" height="28" rx="7" fill="white"/>
+  <!-- bump body -->
+  <rect x="426" y="158" width="46" height="108" rx="0" fill="white"/>
+  <!-- rounded right side of bump -->
+  <ellipse cx="472" cy="212" rx="34" ry="54" fill="white"/>
+  <!-- cutout to make it look like P (knock out inside) -->
+  <ellipse cx="470" cy="212" rx="18" ry="38" fill="#1a3a6b"/>
+  <!-- clean left edge of bump -->
+  <rect x="412" y="186" width="30" height="80" fill="white"/>
+
+  <!-- Decorative dots bottom -->
+  <circle cx="200" cy="428" r="9" fill="#4a90d9" opacity="0.8"/>
+  <circle cx="232" cy="428" r="9" fill="#4a90d9" opacity="0.6"/>
+  <circle cx="264" cy="428" r="9" fill="#4a90d9" opacity="0.8"/>
+  <circle cx="296" cy="428" r="9" fill="#4a90d9" opacity="0.6"/>
+  <circle cx="328" cy="428" r="9" fill="#4a90d9" opacity="0.8"/>
+</svg>
