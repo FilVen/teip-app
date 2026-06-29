@@ -288,9 +288,56 @@ td.empty{color:#9ca3af;font-size:.7rem}
 <div id="tab-taxa" style="display:none">
   <div class="toolbar">
     <label>Ano letivo:</label><select id="taxa-ano" onchange="syncAno(this)"></select>
-    <button class="btn btn-primary btn-sm" onclick="openTaxaTurmaModal()">⚙ Gerir turmas</button>
+    <button class="btn btn-primary btn-sm" onclick="openTaxaImport()">📊 Importar Excel</button>
+    <button class="btn btn-sm" onclick="openTaxaTurmaModal()">⚙ Gerir turmas</button>
   </div>
   <div id="body-taxa"></div>
+</div>
+
+<!-- MODAL: Importar Taxa Positivas -->
+<div class="modal-overlay" id="m-taxa-import">
+  <div class="modal" style="max-width:560px">
+    <h2>📊 Importar Taxa de Positivas</h2>
+    <p style="font-size:.78rem;color:#6b7280;margin-bottom:.75rem">
+      Selecciona um ou mais ficheiros Excel. Cada ficheiro deve ter as turmas nas linhas e os períodos nas colunas.<br>
+      Formatos aceites:<br>
+      <code style="font-size:.72rem">5º - Taxa Positivas - 2025_26.xlsx</code><br>
+      <code style="font-size:.72rem">1º Ciclo - Taxa - 2025_26.xlsx</code><br>
+      O ano escolar é detectado pelo nome do ficheiro (5º, 6º, etc.) ou podes seleccioná-lo manualmente.
+    </p>
+    <div style="display:flex;gap:.5rem;align-items:flex-end;margin-bottom:.6rem">
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.72rem">Forçar ano escolar (opcional)</label>
+        <select id="taxa-import-anoesc">
+          <option value="">Detectar pelo nome do ficheiro</option>
+          <option value="0">1.º Ciclo (turmas A-Q)</option>
+          <option value="5">5.º Ano</option>
+          <option value="6">6.º Ano</option>
+          <option value="7">7.º Ano</option>
+          <option value="8">8.º Ano</option>
+          <option value="9">9.º Ano</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0">
+        <label style="font-size:.72rem">Ano letivo</label>
+        <select id="taxa-import-ano"></select>
+      </div>
+    </div>
+    <div style="border:2px dashed #d1d5db;border-radius:8px;padding:1.5rem;text-align:center;margin-bottom:.75rem;cursor:pointer"
+         onclick="document.getElementById('taxa-import-files').click()"
+         ondragover="event.preventDefault();this.style.borderColor='#1a3a6b'"
+         ondragleave="this.style.borderColor='#d1d5db'"
+         ondrop="event.preventDefault();this.style.borderColor='#d1d5db';processTaxaFiles(event.dataTransfer.files)">
+      <div style="font-size:2rem;margin-bottom:.4rem">📂</div>
+      <div style="font-size:.82rem;color:#6b7280">Clica ou arrasta ficheiros Excel aqui</div>
+      <input type="file" id="taxa-import-files" multiple accept=".xlsx,.xls" style="display:none"
+             onchange="processTaxaFiles(this.files);this.value=''">
+    </div>
+    <div id="taxa-import-log" style="max-height:160px;overflow-y:auto;font-size:.72rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:5px;padding:.5rem;display:none"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeModal('m-taxa-import')">Fechar</button>
+    </div>
+  </div>
 </div>
 
 <!-- RELATÓRIOS PDF -->
@@ -1045,7 +1092,10 @@ function applyLoadedData(data){
   // Debug: check periods available for PORT in c2 2025/2026
   const p1=D.res['c2|2025/2026|5|PORT|1'], p2=D.res['c2|2025/2026|5|PORT|2'], p3=D.res['c2|2025/2026|5|PORT|3'];
   const p1ant=D.res['c2|2024/2025|4|PORT|1'], p3ant=D.res['c2|2024/2025|4|PORT|3'];
-  window._dbg && _dbg(`Após buildRes: D.res=${Object.keys(D.res).length} D.disc.c2[5]=${JSON.stringify(D.disc?.c2?.[5]?.slice(0,5))} (${D.disc?.c2?.[5]?.length} disc) PORT: 1P=${p1} 2P=${p2} 3P=${p3} | ant 1P=${p1ant} 3P=${p3ant}`);
+  // Debug taxa positivas
+  const taxa5A1=D.taxaRes['2025/2026|5|A|1'], taxa5A2=D.taxaRes['2025/2026|5|A|2'], taxa5A3=D.taxaRes['2025/2026|5|A|3'];
+  const taxaKeys = Object.keys(D.taxaRes).filter(k=>k.includes('2025/2026')).slice(0,5);
+  window._dbg && _dbg(`buildRes: D.res=${Object.keys(D.res).length} PORT 5º: 1P=${p1} 2P=${p2} 3P=${p3} | taxa A 5º: 1P=${taxa5A1} 2P=${taxa5A2} 3P=${taxa5A3} | taxaKeys=${JSON.stringify(taxaKeys)}`);
   save();
   initSelects();
   render();
@@ -3466,6 +3516,138 @@ async function credImportar(event){
     msg.style.color='#dc2626';
     msg.textContent='✗ Senha incorrecta ou ficheiro corrompido.';
   }
+}
+
+function openTaxaImport(){
+  const sel = document.getElementById('taxa-import-ano');
+  if(sel){ sel.innerHTML=''; D.anos.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; if(a===getAno()) o.selected=true; sel.appendChild(o); }); }
+  document.getElementById('taxa-import-log').style.display='none';
+  document.getElementById('taxa-import-log').innerHTML='';
+  openModal('m-taxa-import');
+}
+
+function processTaxaFiles(files){
+  if(!files||!files.length) return;
+  const log = document.getElementById('taxa-import-log');
+  log.style.display='block';
+  log.innerHTML='';
+  const anoLetivo = document.getElementById('taxa-import-ano')?.value || getAno();
+  const forceAnoEsc = document.getElementById('taxa-import-anoesc')?.value || '';
+
+  Array.from(files).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
+        if(!rows.length){ log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — ficheiro vazio</div>`; return; }
+
+        // 1. Detect year group
+        let anoEsc = forceAnoEsc !== '' ? parseInt(forceAnoEsc) : null;
+        const fnameClean = file.name.replace(/\.xlsx?$/i,'').replace(/_/g,' ');
+        if(anoEsc === null){
+          const mAe = fnameClean.match(/\b(\d+)\.?[ºo°]?\s*[Aa]no\b/) ||
+                      fnameClean.match(/\b(\d+)\.?[ºo°]\b/) ||
+                      fnameClean.match(/\b(\d+)\b/);
+          if(mAe){ const n=parseInt(mAe[1]); anoEsc = n<=4 ? 0 : n; }
+          else if(/1\.?\s*[ºo°]?\s*[Cc]iclo/i.test(fnameClean)) anoEsc=0;
+        }
+        if(anoEsc===null){
+          log.innerHTML+=`<div style="color:#f59e0b">⚠ <strong>${file.name}</strong> — ano escolar não detectado. Selecciona manualmente.</div>`;
+          return;
+        }
+
+        // 2. Detect turma from filename (e.g. "- A -", "- B -")
+        const mTurma = fnameClean.match(/[-–]\s*([A-Z])\s*[-–]/) ||
+                       fnameClean.match(/\s([A-Z])\s*[-–]/) ||
+                       fnameClean.match(/[-–]\s*([A-Z])\s*$/);
+        const turmaNome = mTurma ? mTurma[1].toUpperCase() : null;
+
+        // 3. Parse header for periods
+        const headerRow = rows[0] || [];
+        const colToPeriod = {};
+        headerRow.forEach((cell, ci) => {
+          if(!cell) return;
+          const m = String(cell).trim().match(/^(\d)/);
+          if(m){ const n=parseInt(m[1]); if(n>=1&&n<=3) colToPeriod[ci]=n; }
+        });
+        if(!Object.keys(colToPeriod).length){
+          log.innerHTML+=`<div style="color:#dc2626">✗ <strong>${file.name}</strong> — cabeçalho de períodos não encontrado</div>`;
+          return;
+        }
+
+        // 4. Detect format and build taxaDataRows
+        const dataRows = rows.slice(1).filter(r=>r&&r[0]!==null&&String(r[0]).trim());
+        const isTurmaFormat = dataRows.every(r=>/^[A-Z]\d*$/.test(String(r[0]).trim().toUpperCase()));
+        const isGradeFormat = dataRows.some(r=>/^(\d|neg|pos)/i.test(String(r[0]).trim()));
+
+        let taxaDataRows = [];
+        if(isTurmaFormat){
+          taxaDataRows = dataRows;
+        } else if(isGradeFormat){
+          // Extract Pos. row
+          const posRow = dataRows.find(r=>/^pos/i.test(String(r[0]).trim()));
+          if(posRow && turmaNome){
+            taxaDataRows = [[turmaNome, ...Object.keys(colToPeriod).map(ci=>posRow[parseInt(ci)])]];
+          } else if(posRow){
+            log.innerHTML+=`<div style="color:#f59e0b">⚠ <strong>${file.name}</strong> — formato de pauta. Inclui a turma no nome do ficheiro (ex: "- A -")</div>`;
+            return;
+          }
+        } else if(!isTurmaFormat && !isGradeFormat && turmaNome){
+          // Discipline-per-row format: PORT, ING, MAT... each row = one discipline
+          // Calculate average per period (ignore zeros = not evaluated that period)
+          const sortedCols = Object.entries(colToPeriod).sort((a,b)=>a[1]-b[1]);
+          const avgVals = sortedCols.map(([ci, per])=>{
+            const vals = dataRows
+              .map(r=>r[parseInt(ci)])
+              .filter(v=>v!==null&&v!==undefined&&parseFloat(v)>0);
+            return vals.length ? vals.reduce((a,b)=>a+parseFloat(b),0)/vals.length : null;
+          });
+          taxaDataRows = [[turmaNome, ...avgVals]];
+          // Remap colToPeriod to sequential indices for the synthetic row
+          Object.keys(colToPeriod).forEach(k=>delete colToPeriod[k]);
+          sortedCols.forEach(([,per],idx)=>{ colToPeriod[idx+1]=per; });
+        }
+
+        if(!taxaDataRows.length){
+          log.innerHTML+=`<div style="color:#f59e0b">⚠ <strong>${file.name}</strong> — sem dados reconhecidos</div>`;
+          return;
+        }
+
+        // 5. Import
+        if(!D.turmasTaxa[anoLetivo]) D.turmasTaxa[anoLetivo]={};
+        if(!D.turmasTaxa[anoLetivo][anoEsc]) D.turmasTaxa[anoLetivo][anoEsc]=[];
+        let imported=0;
+        const turmasLog=[];
+
+        taxaDataRows.forEach((row) => {
+          const turma = String(row[0]).trim().toUpperCase();
+          if(!D.turmasTaxa[anoLetivo][anoEsc].includes(turma))
+            D.turmasTaxa[anoLetivo][anoEsc].push(turma);
+          // isTurmaFormat: use original col indices
+          // synthetic rows (grade or disc format): colToPeriod remapped to 1,2,3
+          Object.entries(colToPeriod).forEach(([ci, per]) => {
+            const v = row[parseInt(ci)];
+            if(v!==null && v!==undefined && v!=='' && !isNaN(parseFloat(v)) && parseFloat(v)>0){
+              const k=`${anoLetivo}|${anoEsc}|${turma}|${per}`;
+              userTaxaOverrides[k]=parseFloat(v);
+              D.taxaRes[k]=parseFloat(v);
+              imported++;
+            }
+          });
+          turmasLog.push(turma);
+        });
+
+        const lbl = anoEsc===0?'1.º Ciclo':`${anoEsc}.º Ano`;
+        log.innerHTML+=`<div style="color:#065f46">✓ <strong>${file.name}</strong> — ${lbl} · ${anoLetivo} · Turmas: ${turmasLog.join(', ')} · ${imported} valor(es)</div>`;
+        save(); renderTaxa();
+      } catch(err){
+        log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — erro: ${err.message}</div>`;
+      }
+    };
+    reader.readAsArrayBuffer(file);
+  });
 }
 
 // ============================================================
