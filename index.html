@@ -4,11 +4,13 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <meta name="theme-color" content="#1a3a6b">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="TEIP">
 <link rel="manifest" href="manifest.json">
 <link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
 <title>Análise de Resultados TEIP</title>
 
 <style>
@@ -788,9 +790,22 @@ let userTaxaOverrides = {};
     const cfg = Store.get('teip2');
     if(cfg){
       const p=JSON.parse(cfg);
-      ['anoAtual','anos','disc','secCursos','turmasTaxa','metas'].forEach(k=>{
+      ['anoAtual','anos','secCursos','turmasTaxa','metas'].forEach(k=>{
         if(p[k]!==undefined) D[k]=p[k];
       });
+      // Merge disc: always keep DEFAULT_DISC as base, add extras from saved
+      if(p.disc){
+        ['c1','c2','c3'].forEach(ciclo=>{
+          Object.keys(p.disc[ciclo]||{}).forEach(aeStr=>{
+            const ae = parseInt(aeStr);
+            const saved = p.disc[ciclo][aeStr]||[];
+            const dflt  = (DEFAULT_DISC[ciclo]||{})[ae]||[];
+            const merged = [...dflt];
+            saved.forEach(d=>{ if(!merged.includes(d)) merged.push(d); });
+            D.disc[ciclo][ae]=merged;
+          });
+        });
+      }
     }
   } catch(e){}
   if(!D.secCursos) D.secCursos=JSON.parse(JSON.stringify(DEFAULT_SEC_CURSOS));
@@ -994,13 +1009,16 @@ function applyLoadedData(data){
     if(c.metas) D.metas = c.metas;
     if(c.secCursos) D.secCursos = c.secCursos;
     if(c.turmasTaxa) D.turmasTaxa = c.turmasTaxa;
-    // Merge disc: keep DEFAULT_DISC as base, overlay saved disc on top
+    // Merge disc: always start from DEFAULT_DISC, add any extra saved disciplines
     if(c.disc){
       ['c1','c2','c3'].forEach(ciclo=>{
-        if(!D.disc[ciclo]) D.disc[ciclo]={};
-        Object.keys(c.disc[ciclo]||{}).forEach(ae=>{
-          if(c.disc[ciclo][ae] && c.disc[ciclo][ae].length)
-            D.disc[ciclo][ae] = c.disc[ciclo][ae];
+        Object.keys(c.disc[ciclo]||{}).forEach(aeStr=>{
+          const ae = parseInt(aeStr);  // JSON keys are strings, DEFAULT_DISC uses numbers
+          const saved = c.disc[ciclo][aeStr] || [];
+          const dflt  = (DEFAULT_DISC[ciclo]||{})[ae] || [];
+          const merged = [...dflt];
+          saved.forEach(d => { if(!merged.includes(d)) merged.push(d); });
+          D.disc[ciclo][ae] = merged;
         });
       });
     }
@@ -1024,9 +1042,14 @@ function applyLoadedData(data){
     '2025/2026':{0:['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'],5:['A','B','C','D'],6:['A','B','C','D'],7:['A','B','C'],8:['A','B','C','D'],9:['A','B','C','D','E']}
   };
   buildRes();
+  // Debug: check periods available for PORT in c2 2025/2026
+  const p1=D.res['c2|2025/2026|5|PORT|1'], p2=D.res['c2|2025/2026|5|PORT|2'], p3=D.res['c2|2025/2026|5|PORT|3'];
+  const p1ant=D.res['c2|2024/2025|4|PORT|1'], p3ant=D.res['c2|2024/2025|4|PORT|3'];
+  window._dbg && _dbg(`Após buildRes: D.res=${Object.keys(D.res).length} D.disc.c2[5]=${JSON.stringify(D.disc?.c2?.[5]?.slice(0,5))} (${D.disc?.c2?.[5]?.length} disc) PORT: 1P=${p1} 2P=${p2} 3P=${p3} | ant 1P=${p1ant} 3P=${p3ant}`);
   save();
   initSelects();
   render();
+  window._dbg && _dbg(`Após render: tab activo=${document.querySelector('.tab-btn.active')?.textContent||'?'}`);
   if(data.gh && data.gh.tok){
     const ind=document.getElementById('gh-sync-indicator'); if(ind) ind.style.display='';
   }
@@ -3676,6 +3699,15 @@ initSelects();
 updateImAnoEsc();
 render();
 
+// Debug status div — visible on screen
+(function(){
+  const dbg = document.createElement('div');
+  dbg.id = 'gh-debug';
+  dbg.style.cssText = 'position:fixed;bottom:0;left:0;right:0;background:#1e3a5f;color:#a5f3fc;font-size:.68rem;padding:4px 10px;z-index:9999;font-family:monospace;max-height:80px;overflow:auto';
+  document.body.appendChild(dbg);
+  window._dbg = msg => { dbg.innerHTML = new Date().toLocaleTimeString() + ' ' + msg + '<br>' + dbg.innerHTML; };
+})();
+
 // Load saved GitHub credentials and auto-load data
 (function(){
   const t = Store.get('gh_token');
@@ -3688,15 +3720,19 @@ render();
   function tryLoad(token, repo){
     const ind = document.getElementById('gh-sync-indicator');
     if(ind) ind.style.display='';
+    window._dbg && _dbg('A carregar do GitHub...');
     ghShowStatus('⏳ A carregar dados do GitHub...', true);
     ghLoad(token, repo).then(data => {
       if(data){
+        window._dbg && _dbg(`GitHub OK: ${Object.keys(data.userOverrides||{}).length} entradas, anos=${JSON.stringify((data.cfg||{}).anos)}, metas=${JSON.stringify((data.cfg||{}).metas)}`);
         applyLoadedData(data);
         ghShowStatus(`✓ Dados carregados (${new Date().toLocaleTimeString()})`, true);
       } else {
+        window._dbg && _dbg('GitHub: sem dados ou erro');
         ghShowStatus('⚠ Sem dados no GitHub ainda — a usar dados locais', false);
       }
-    }).catch(()=>{
+    }).catch(e=>{
+      window._dbg && _dbg('GitHub ERRO: ' + e.message);
       ghShowStatus('⚠ Erro ao ligar ao GitHub — a usar dados locais', false);
     });
   }
