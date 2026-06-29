@@ -287,7 +287,8 @@ td.empty{color:#9ca3af;font-size:.7rem}
       Calcula a % de positivas (≥10) por disciplina e importa para o curso correspondente.
     </p>
     <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:.5rem .75rem;font-size:.73rem;color:#92400e;margin-bottom:.75rem">
-      <strong>Correspondência de cursos:</strong> O sistema usa o nome do curso no PDF (ex: "Técnico de Restaurante/Bar") para encontrar o curso configurado. Certifica-te que o curso está criado em "Profissional".
+      <strong>Como funciona:</strong> O sistema detecta automaticamente o curso, ano escolar e período a partir do PDF.<br>
+      Se o curso não for encontrado, verifica se está criado em "Profissional" com o ano escolar correcto (10.º, 11.º ou 12.º).
     </div>
     <div style="border:2px dashed #d1d5db;border-radius:8px;padding:1.5rem;text-align:center;margin-bottom:.75rem;cursor:pointer"
          onclick="document.getElementById('pdf-prof-files').click()"
@@ -295,8 +296,9 @@ td.empty{color:#9ca3af;font-size:.7rem}
          ondragleave="this.style.borderColor='#d1d5db'"
          ondrop="event.preventDefault();this.style.borderColor='#d1d5db';processProfPDF(event.dataTransfer.files)">
       <div style="font-size:2rem;margin-bottom:.4rem">📄</div>
-      <div style="font-size:.82rem;color:#6b7280">Clica ou arrasta ficheiros PDF aqui</div>
-      <input type="file" id="pdf-prof-files" multiple accept=".pdf" style="display:none"
+      <div style="font-size:.82rem;color:#6b7280">Clica ou arrasta ficheiros PDF ou JSON aqui</div>
+      <div style="font-size:.72rem;color:#9ca3af;margin-top:.25rem">PDF (pauta original) ou JSON (pré-processado pelo Claude)</div>
+      <input type="file" id="pdf-prof-files" multiple accept=".pdf,.json" style="display:none"
              onchange="processProfPDF(this.files);this.value=''">
     </div>
     <div id="pdf-prof-log" style="max-height:220px;overflow-y:auto;font-size:.72rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:5px;padding:.5rem;display:none"></div>
@@ -3727,11 +3729,55 @@ function loadPdfJs(){
 async function processProfPDF(files){
   if(!files||!files.length) return;
   const log=document.getElementById('pdf-prof-log');
-  log.style.display='block'; log.innerHTML='<div style="color:#6b7280">A carregar PDF.js...</div>';
-  try { await loadPdfJs(); } catch(e){ log.innerHTML='<div style="color:#dc2626">✗ Erro ao carregar PDF.js: '+e.message+'</div>'; return; }
-  log.innerHTML='';
+  log.style.display='block'; log.innerHTML='';
 
   for(const file of Array.from(files)){
+    // Handle pre-parsed JSON files
+    if(file.name.endsWith('.json')){
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        if(data._teip_prof_pdf && data.cursos){
+          let totalImported = 0;
+          data.cursos.forEach(c=>{
+            const anoLetivo = c.anoLetivo || getAno();
+            const per = c.periodo || 3;
+            const cursoId = c.cursoId;
+            // Find course: by id first, then by anoEsc among Prof courses
+            const cursosProf = (D.secCursos[anoLetivo]||[]).filter(x=>x.tipo==='Prof');
+            const curso = (D.secCursos[anoLetivo]||[]).find(x=>x.id===cursoId) ||
+                          cursosProf.find(x=>x.anoEsc===c.anoEsc);
+            if(!curso){
+              const disponiveis = cursosProf.map(x=>`${x.anoEsc}.º (${x.nome})`).join(', ') || 'nenhum';
+              log.innerHTML+=`<div style="color:#f59e0b">⚠ Curso ${c.anoEsc}.º não encontrado em ${anoLetivo}.<br>
+                <small>Cursos profissionais disponíveis: ${disponiveis}.<br>
+                Cria o curso na aba Profissional e reimporta.</small></div>`;
+              return;
+            }
+            const discLog=[];
+            Object.entries(c.discs).forEach(([disc,pct])=>{
+              const k=`sec|${anoLetivo}|${curso.id}|${disc}|${per}`;
+              userOverrides[k]=pct; D.res[k]=pct;
+              if(!(curso.disc||[]).includes(disc)){if(!curso.disc)curso.disc=[];curso.disc.push(disc);}
+              discLog.push(`${disc}:${pct}%`);
+              totalImported++;
+            });
+            log.innerHTML+=`<div style="color:#065f46">✓ <strong>${curso.nome}</strong> · ${anoLetivo} · ${per}.º P · ${Object.keys(c.discs).length} disciplinas: ${discLog.join(', ')}</div>`;
+          });
+          save(); renderSecundario('Prof');
+          log.innerHTML+=`<div style="color:#065f46;font-weight:700">✅ Total: ${totalImported} valores importados de ${data.cursos.length} cursos</div>`;
+        } else {
+          log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — JSON não reconhecido (falta _teip_prof_pdf)</div>`;
+        }
+      } catch(e){
+        log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — erro: ${e.message}</div>`;
+      }
+      continue;
+    }
+
+    // Handle PDF files via PDF.js
+    log.innerHTML+=`<div style="color:#6b7280">📄 ${file.name} — A extrair texto do PDF...</div>`;
+    try { await loadPdfJs(); } catch(e){ log.innerHTML+=`<div style="color:#dc2626">✗ Erro ao carregar PDF.js: ${e.message}</div>`; return; }
     try {
       const buf = await file.arrayBuffer();
       const pdf = await pdfjsLib.getDocument({data:buf}).promise;
@@ -3739,7 +3785,6 @@ async function processProfPDF(files){
       for(let p=1;p<=pdf.numPages;p++){
         const page = await pdf.getPage(p);
         const tc = await page.getTextContent();
-        // Reconstruct text preserving row structure
         const items = tc.items.sort((a,b)=> b.transform[5]-a.transform[5] || a.transform[4]-b.transform[4]);
         let lastY = null;
         for(const item of items){
@@ -3750,13 +3795,14 @@ async function processProfPDF(files){
         }
         fullText+='\n---PAGE---\n';
       }
-      log.innerHTML+=`<div style="color:#6b7280">📄 ${file.name} — ${pdf.numPages} página(s) extraída(s)</div>`;
       parseProfPDFText(fullText, file.name, log);
     } catch(err){
-      log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — ${err.message}</div>`;
+      log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — ${err.message}<br><small>Tenta usar o JSON pré-processado pelo Claude em vez do PDF.</small></div>`;
     }
   }
 }
+
+
 
 function parseProfPDFText(text, fname, log){
   const ano=getAno();
@@ -3796,20 +3842,23 @@ function parseProfPDFText(text, fname, log){
     const mC = pageText.match(/T[eé]cnico\s+(?:de\s+)?([A-Za-zÀ-ÿ/\s]+?)(?:\s*-\s*\d{4}|\s*\n)/i);
     const cursoNome = mC ? mC[1].trim() : cursoNomeRaw;
 
-    // Find matching course in D.secCursos
+    // Find matching course in D.secCursos — name match first, then fallback to anoEsc only
     const cursosAno = getSecCursos(anoLetivo);
-    let curso = cursosAno.find(c=>{
-      if(c.tipo!=='Prof') return false;
+    const cursosProf = cursosAno.filter(c=>c.tipo==='Prof');
+    let curso = cursosProf.find(c=>{
       if(c.anoEsc!==anoEsc) return false;
-      // Match course name
       const cN = normStr(c.nome);
       const pN = normStr(cursoNome);
       return cN.includes(pN.split(' ').filter(w=>w.length>3)[0]||'') ||
              pN.includes(cN.split(' ').filter(w=>w.length>3)[0]||'');
     });
+    // Fallback: any Prof course with matching anoEsc
+    if(!curso) curso = cursosProf.find(c=>c.anoEsc===anoEsc);
 
     if(!curso){
-      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: ${anoEsc}.º Ano "${cursoNome}" — curso não encontrado. Cria o curso primeiro.</div>`;
+      const disponiveis = cursosProf.map(c=>`${c.anoEsc}.º "${c.nome}"`).join(', ') || 'nenhum';
+      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: ${anoEsc}.º Ano não encontrado em Profissional (${anoLetivo}).<br>
+        <small>Cursos disponíveis: ${disponiveis}. Cria o curso na aba Profissional.</small></div>`;
       return;
     }
 
