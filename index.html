@@ -979,9 +979,21 @@ function applyLoadedData(data){
   if(data.userTaxaOverrides) userTaxaOverrides = data.userTaxaOverrides;
   if(data.cfg){
     const c = data.cfg;
-    ['anoAtual','anos','disc','secCursos','turmasTaxa','metas'].forEach(k=>{
-      if(c[k]!==undefined) D[k]=c[k];
-    });
+    if(c.anoAtual) D.anoAtual = c.anoAtual;
+    if(c.anos && c.anos.length) D.anos = c.anos;
+    if(c.metas) D.metas = c.metas;
+    if(c.secCursos) D.secCursos = c.secCursos;
+    if(c.turmasTaxa) D.turmasTaxa = c.turmasTaxa;
+    // Merge disc: keep DEFAULT_DISC as base, overlay saved disc on top
+    if(c.disc){
+      ['c1','c2','c3'].forEach(ciclo=>{
+        if(!D.disc[ciclo]) D.disc[ciclo]={};
+        Object.keys(c.disc[ciclo]||{}).forEach(ae=>{
+          if(c.disc[ciclo][ae] && c.disc[ciclo][ae].length)
+            D.disc[ciclo][ae] = c.disc[ciclo][ae];
+        });
+      });
+    }
   }
   // Restore GitHub credentials
   if(data.gh){
@@ -995,26 +1007,16 @@ function applyLoadedData(data){
       } catch(e){}
     }
   }
-  if(!D.secCursos) D.secCursos=JSON.parse(JSON.stringify(DEFAULT_SEC_CURSOS));
-  if(!D.taxaRes)   D.taxaRes={};
-  if(!D.turmasTaxa) D.turmasTaxa={
+  if(!D.secCursos) D.secCursos = JSON.parse(JSON.stringify(DEFAULT_SEC_CURSOS));
+  if(!D.taxaRes)   D.taxaRes = {};
+  if(!D.turmasTaxa) D.turmasTaxa = {
     '2024/2025':{0:['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'],5:['A','B','C','D'],6:['A','B','C','D'],7:['A','B','C'],8:['A','B','C','D'],9:['A','B','C','D','E']},
     '2025/2026':{0:['A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q'],5:['A','B','C','D'],6:['A','B','C','D'],7:['A','B','C'],8:['A','B','C','D'],9:['A','B','C','D','E']}
   };
-  // Debug
-  console.log('applyLoadedData: anoAtual=', D.anoAtual, 'D.res keys=', Object.keys(D.res).length, 'userOverrides keys=', Object.keys(userOverrides).length);
-  // Sample key check
-  const sampleKey = Object.keys(userOverrides)[0];
-  console.log('First userOverrides key:', sampleKey, '=', userOverrides[sampleKey]);
   buildRes();
-  console.log('After buildRes: D.res keys=', Object.keys(D.res).length);
-  // Check a specific key
-  const testKey = `c2|2025/2026|5|PORT|1`;
-  console.log('c2|2025/2026|5|PORT|1 =', D.res[testKey]);
   save();
   initSelects();
   render();
-  // Show sync indicator if credentials restored
   if(data.gh && data.gh.tok){
     const ind=document.getElementById('gh-sync-indicator'); if(ind) ind.style.display='';
   }
