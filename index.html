@@ -269,11 +269,41 @@ td.empty{color:#9ca3af;font-size:.7rem}
     <label>Ano letivo:</label><select id="sec-prof-ano" onchange="syncAno(this)"></select>
     <button class="btn btn-primary btn-sm" onclick="openAddCursoModal('Prof')">+ Novo curso</button>
     <button class="btn btn-primary btn-sm" onclick="openModal('m-import')">📊 Importar Excel</button>
+    <button class="btn btn-primary btn-sm" onclick="openModal('m-pdf-prof')">📄 Importar PDF (Pauta)</button>
   </div>
   <div class="legend">
     <em style="color:#6b7280;font-size:.7rem">10.º ano sem comparação (1.º ano do curso) &nbsp;|&nbsp; 11.º compara com 10.º do ano anterior &nbsp;|&nbsp; 12.º compara com 11.º do ano anterior (mesmos alunos)</em>
   </div>
   <div id="body-sec-prof"></div>
+</div>
+
+<!-- MODAL: Importar PDF Profissional -->
+<div class="modal-overlay" id="m-pdf-prof">
+  <div class="modal" style="max-width:620px">
+    <h2>📄 Importar Pauta PDF — Profissional</h2>
+    <p style="font-size:.78rem;color:#6b7280;margin-bottom:.6rem">
+      Selecciona um ou mais PDFs de pautas do ensino profissional.<br>
+      O sistema detecta automaticamente: curso, ano escolar, ano letivo e disciplinas.<br>
+      Calcula a % de positivas (≥10) por disciplina e importa para o curso correspondente.
+    </p>
+    <div style="background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:.5rem .75rem;font-size:.73rem;color:#92400e;margin-bottom:.75rem">
+      <strong>Correspondência de cursos:</strong> O sistema usa o nome do curso no PDF (ex: "Técnico de Restaurante/Bar") para encontrar o curso configurado. Certifica-te que o curso está criado em "Profissional".
+    </div>
+    <div style="border:2px dashed #d1d5db;border-radius:8px;padding:1.5rem;text-align:center;margin-bottom:.75rem;cursor:pointer"
+         onclick="document.getElementById('pdf-prof-files').click()"
+         ondragover="event.preventDefault();this.style.borderColor='#1a3a6b'"
+         ondragleave="this.style.borderColor='#d1d5db'"
+         ondrop="event.preventDefault();this.style.borderColor='#d1d5db';processProfPDF(event.dataTransfer.files)">
+      <div style="font-size:2rem;margin-bottom:.4rem">📄</div>
+      <div style="font-size:.82rem;color:#6b7280">Clica ou arrasta ficheiros PDF aqui</div>
+      <input type="file" id="pdf-prof-files" multiple accept=".pdf" style="display:none"
+             onchange="processProfPDF(this.files);this.value=''">
+    </div>
+    <div id="pdf-prof-log" style="max-height:220px;overflow-y:auto;font-size:.72rem;background:#f9fafb;border:1px solid #e5e7eb;border-radius:5px;padding:.5rem;display:none"></div>
+    <div class="modal-actions" style="margin-top:.75rem">
+      <button class="btn" onclick="closeModal('m-pdf-prof')">Fechar</button>
+    </div>
+  </div>
 </div>
 
 <!-- DEPARTAMENTOS -->
@@ -3676,7 +3706,205 @@ function processTaxaFiles(files){
 }
 
 // ============================================================
-// RELATÓRIOS PDF
+// PDF IMPORT — Profissional (pautas de avaliação)
+// ============================================================
+
+// Dynamically load PDF.js if needed
+function loadPdfJs(){
+  return new Promise((resolve,reject)=>{
+    if(window.pdfjsLib){ resolve(); return; }
+    const s=document.createElement('script');
+    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+    s.onload=()=>{
+      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+      resolve();
+    };
+    s.onerror=reject;
+    document.head.appendChild(s);
+  });
+}
+
+async function processProfPDF(files){
+  if(!files||!files.length) return;
+  const log=document.getElementById('pdf-prof-log');
+  log.style.display='block'; log.innerHTML='<div style="color:#6b7280">A carregar PDF.js...</div>';
+  try { await loadPdfJs(); } catch(e){ log.innerHTML='<div style="color:#dc2626">✗ Erro ao carregar PDF.js: '+e.message+'</div>'; return; }
+  log.innerHTML='';
+
+  for(const file of Array.from(files)){
+    try {
+      const buf = await file.arrayBuffer();
+      const pdf = await pdfjsLib.getDocument({data:buf}).promise;
+      let fullText = '';
+      for(let p=1;p<=pdf.numPages;p++){
+        const page = await pdf.getPage(p);
+        const tc = await page.getTextContent();
+        // Reconstruct text preserving row structure
+        const items = tc.items.sort((a,b)=> b.transform[5]-a.transform[5] || a.transform[4]-b.transform[4]);
+        let lastY = null;
+        for(const item of items){
+          const y = Math.round(item.transform[5]);
+          if(lastY!==null && Math.abs(y-lastY)>5) fullText+='\n';
+          fullText+=item.str+' ';
+          lastY=y;
+        }
+        fullText+='\n---PAGE---\n';
+      }
+      log.innerHTML+=`<div style="color:#6b7280">📄 ${file.name} — ${pdf.numPages} página(s) extraída(s)</div>`;
+      parseProfPDFText(fullText, file.name, log);
+    } catch(err){
+      log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — ${err.message}</div>`;
+    }
+  }
+}
+
+function parseProfPDFText(text, fname, log){
+  const ano=getAno();
+  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
+
+  // Detect year from text: "2025/26" or "2025/2026"
+  let anoLetivo = ano;
+  const mAno = text.match(/(\d{4})\/(\d{2,4})/);
+  if(mAno){
+    const y1=mAno[1], y2=mAno[2].length===2?mAno[1].slice(0,2)+mAno[2]:mAno[2];
+    anoLetivo=`${y1}/${y2}`;
+  }
+
+  // Detect period: "3º Período", "2.º Período", etc.
+  let per = 3;
+  const mPer = text.match(/([1-3])[ºo°]\.?\s*Per[íi]odo/i);
+  if(mPer) per = parseInt(mPer[1]);
+
+  // Detect course name and year group from "Turma: X(YY)"
+  // "Turma: 1(10)" means turma 1, year group 10
+  const turmaMatches = [...text.matchAll(/Turma[:\s]+\d+\((\d+)\)/gi)];
+
+  // Detect course name: "Técnico de Restaurante/Bar", "Técnico Vitivinícola", etc.
+  const cursoMatch = text.match(/T[eé]cnico\s+(?:de\s+)?([A-Za-zÀ-ÿ/\s]+?)(?:\s*-\s*\d{4}|\s*\n)/i);
+  const cursoNomeRaw = cursoMatch ? cursoMatch[1].trim() : '';
+
+  // Parse each page section
+  const pages = text.split('---PAGE---').filter(p=>p.trim());
+
+  pages.forEach((pageText, pi) => {
+    // Get turma/year for this page
+    const mT = pageText.match(/Turma[:\s]+\d+\((\d+)\)/i);
+    if(!mT) return;
+    const anoEsc = parseInt(mT[1]);
+
+    // Get course for this page
+    const mC = pageText.match(/T[eé]cnico\s+(?:de\s+)?([A-Za-zÀ-ÿ/\s]+?)(?:\s*-\s*\d{4}|\s*\n)/i);
+    const cursoNome = mC ? mC[1].trim() : cursoNomeRaw;
+
+    // Find matching course in D.secCursos
+    const cursosAno = getSecCursos(anoLetivo);
+    let curso = cursosAno.find(c=>{
+      if(c.tipo!=='Prof') return false;
+      if(c.anoEsc!==anoEsc) return false;
+      // Match course name
+      const cN = normStr(c.nome);
+      const pN = normStr(cursoNome);
+      return cN.includes(pN.split(' ').filter(w=>w.length>3)[0]||'') ||
+             pN.includes(cN.split(' ').filter(w=>w.length>3)[0]||'');
+    });
+
+    if(!curso){
+      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: ${anoEsc}.º Ano "${cursoNome}" — curso não encontrado. Cria o curso primeiro.</div>`;
+      return;
+    }
+
+    // Find discipline header row — look for known discipline abbreviations
+    // Disciplines appear as repeated codes in the header: "PORT. PORT. PORT. I.CONT..."
+    const discLine = pageText.split('\n').find(l=>{
+      const upper=l.toUpperCase();
+      return (upper.includes('PORT') || upper.includes('E.FIS') || upper.includes('MATEM')) &&
+             upper.split(/\s+/).filter(w=>w.length>2).length > 5;
+    });
+
+    if(!discLine){
+      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: Não encontrou linha de disciplinas</div>`;
+      return;
+    }
+
+    // Parse discipline tokens
+    const discTokens = discLine.split(/\s+/).filter(w=>w.length>1);
+
+    // Disc name → app code mapping
+    const DISC_PDF_MAP = {
+      'PORT.':'PORT','PORT':'PORT','I.CONT':'ING-I','ICONT':'ING-I',
+      'A.I.':'AI','AI':'AI','E.FIS':'EDF','EFIS':'EDF',
+      'T.I.C.':'TIC','TIC':'TIC','ECON.':'ECONOMIA','ECON':'ECONOMIA',
+      'MATEM':'MATEMÁT','MATEMÁT':'MATEMÁT','PSIC.':'PSICOLOGIA','PSIC':'PSICOLOGIA',
+      'BIOL.':'BIOLOGIA','BIOL':'BIOLOGIA','F.Q.':'FIS QUIMICA','FQ':'FIS QUIMICA',
+      'ENO':'ENOLOGIA','GM':'GM','VITI':'VITICULTUR','VITIT':'VITICULTUR',
+      'LTIF':'LTIF','GMRB':'GMRB','NUTRI':'NUTRIÇÃO','SERVIÇOS':'SERVIÇOS','SERVIC':'SERVIÇOS'
+    };
+
+    // Map each token to a disc code
+    const cols = discTokens.map(t=>{
+      const tU=t.toUpperCase().replace(/\.$/,'');
+      return DISC_PDF_MAP[t.toUpperCase()] || DISC_PDF_MAP[tU] ||
+             Object.entries(DISC_PDF_MAP).find(([k])=>tU.startsWith(k.replace('.','')))?.[1] || null;
+    });
+
+    // Find student data rows — lines starting with a number and containing grades/AM
+    const studentRows = pageText.split('\n').filter(l=>{
+      const t=l.trim();
+      return /^\d+\s+[A-ZÀ-Ú]/.test(t) && (t.includes('AM') || /\d{1,2}/.test(t));
+    });
+
+    if(!studentRows.length){
+      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: Sem linhas de alunos detectadas</div>`;
+      return;
+    }
+
+    // Count positives per disc column
+    const discPos  = new Array(cols.length).fill(0);
+    const discTot  = new Array(cols.length).fill(0);
+
+    studentRows.forEach(row=>{
+      // Extract all tokens after student name
+      const tokens = row.trim().split(/\s+/);
+      // Skip index and name (find where numbers/AM start)
+      let dataStart = 1;
+      while(dataStart<tokens.length && !/^\d{2,}$|^AM$|^TR$|^--$/.test(tokens[dataStart])) dataStart++;
+      const vals = tokens.slice(dataStart);
+      cols.forEach((disc,ci)=>{
+        if(!disc) return;
+        const v = vals[ci];
+        if(!v || v==='--' || v==='AM' || v==='TR' || v==='NF') return;
+        const n = parseInt(v);
+        if(isNaN(n)) return;
+        discTot[ci]++;
+        if(n>=10) discPos[ci]++;
+      });
+    });
+
+    // Aggregate by disc code
+    const discAgg = {};
+    cols.forEach((disc,ci)=>{
+      if(!disc||discTot[ci]===0) return;
+      if(!discAgg[disc]) discAgg[disc]={pos:0,tot:0};
+      discAgg[disc].pos+=discPos[ci];
+      discAgg[disc].tot+=discTot[ci];
+    });
+
+    // Import to D.res
+    let imported=0;
+    const discLog=[];
+    Object.entries(discAgg).forEach(([disc,{pos,tot}])=>{
+      const pct=parseFloat((pos/tot*100).toFixed(2));
+      const k=`sec|${anoLetivo}|${curso.id}|${disc}|${per}`;
+      userOverrides[k]=pct; D.res[k]=pct;
+      if(!(curso.disc||[]).includes(disc)){if(!curso.disc)curso.disc=[];curso.disc.push(disc);}
+      discLog.push(`${disc}:${pct}%`);
+      imported++;
+    });
+
+    log.innerHTML+=`<div style="color:#065f46">✓ Pág.${pi+1} — <strong>${curso.nome}</strong> · ${anoLetivo} · ${per}.º P · ${imported} disciplinas: ${discLog.join(', ')}</div>`;
+    save(); renderSecundario('Prof');
+  });
+}
 // ============================================================
 
 function rptFmt(v){ return v!==null&&v!==undefined ? parseFloat(v).toFixed(1)+'%' : '—'; }
