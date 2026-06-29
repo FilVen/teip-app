@@ -933,6 +933,10 @@ async function ghTestAndSave(){
 
 async function ghSync(){
   if(!GH.configured()){ alert('Configura o GitHub primeiro nas Configurações.'); return; }
+  if(location.protocol === 'file:'){
+    ghShowStatus('✗ Não é possível sincronizar com file:// no Chrome. Usa Edge, Firefox ou o GitHub Pages.', false);
+    return;
+  }
   ghShowStatus('A sincronizar...', true);
   const ok = await ghSave(buildSavePayload());
   if(ok){ showSaveToast(); ghShowStatus(`✓ Sincronizado ${new Date().toLocaleTimeString()}`, true); }
@@ -1035,8 +1039,12 @@ function save(){
     userTaxaOverrides = Object.assign({}, D.taxaRes);
     Store.set('teip_overrides', JSON.stringify({res: userOverrides, taxaRes: userTaxaOverrides}));
     const cfg = {
-      anoAtual: D.anoAtual, anos: D.anos, disc: D.disc,
-      secCursos: D.secCursos, turmasTaxa: D.turmasTaxa, metas: D.metas
+      anoAtual: D.anoAtual,
+      anos: D.anos,
+      disc: D.disc,
+      secCursos: D.secCursos,
+      turmasTaxa: D.turmasTaxa,
+      metas: D.metas  // ← metas always saved
     };
     const tok = Store.get('gh_token');
     const rep = Store.get('gh_repo');
@@ -1044,7 +1052,9 @@ function save(){
     if(rep) cfg._ghRepo = rep;
     Store.set('teip2', JSON.stringify(cfg));
     showSaveToast();
-    if(GH.configured()){
+    // Auto-sync to GitHub — skip if file:// (Chrome blocks fetch)
+    const isFileProtocol = location.protocol === 'file:';
+    if(GH.configured() && !isFileProtocol){
       if(save._ghTimer) clearTimeout(save._ghTimer);
       save._ghTimer = setTimeout(async ()=>{
         save._ghTimer = null;
@@ -1052,6 +1062,8 @@ function save(){
         if(ok) ghShowStatus(`✓ Sincronizado ${new Date().toLocaleTimeString()}`, true);
         else    ghShowStatus(`⚠ Erro — clica "⬆ Forçar envio"`, false);
       }, 5000);
+    } else if(isFileProtocol && GH.configured()){
+      ghShowStatus('⚠ file:// — abre via GitHub Pages para sincronizar', false);
     }
   } catch(e){ console.error('save error:', e); }
 }
@@ -1776,7 +1788,12 @@ function salvarMetas(){
     if(!D.metas[c]) D.metas[c]={};
     D.metas[c][a]=inp.value!==''?parseFloat(inp.value):null;
   });
-  save(); render(); alert('Metas guardadas com sucesso!');
+  save(); render();
+  if(location.protocol==='file:' && GH.configured()){
+    alert('✓ Metas guardadas localmente.\n\n⚠ ATENÇÃO: Estás a usar file://\nAs metas NÃO foram sincronizadas com o GitHub.\nAbre a aplicação via https://filven.github.io/teip-app/ para que as metas fiquem guardadas online.');
+  } else {
+    alert('✓ Metas guardadas com sucesso!');
+  }
 }
 
 function addAno(){
