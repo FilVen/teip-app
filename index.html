@@ -3808,12 +3808,16 @@ function parseProfPDFText(text, fname, log){
   const ano=getAno();
   const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
 
-  // Detect year from text: "2025/26" or "2025/2026"
+  // Detect year letivo: prefer "2025/26" format (school year) over "2025/2028" (course duration)
   let anoLetivo = ano;
-  const mAno = text.match(/(\d{4})\/(\d{2,4})/);
-  if(mAno){
-    const y1=mAno[1], y2=mAno[2].length===2?mAno[1].slice(0,2)+mAno[2]:mAno[2];
-    anoLetivo=`${y1}/${y2}`;
+  // First try short format: 2025/26
+  const mAnoShort = text.match(/\b(\d{4})\/(\d{2})\b/);
+  if(mAnoShort){
+    anoLetivo = `${mAnoShort[1]}/${mAnoShort[1].slice(0,2)}${mAnoShort[2]}`;
+  } else {
+    // Fallback: long format 2025/2026
+    const mAnoLong = text.match(/\b(\d{4})\/(\d{4})\b/);
+    if(mAnoLong) anoLetivo = `${mAnoLong[1]}/${mAnoLong[2]}`;
   }
 
   // Detect period: "3º Período", "2.º Período", etc.
