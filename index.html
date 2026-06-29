@@ -3847,24 +3847,31 @@ function parseProfPDFText(text, fname, log){
     const cursoNome = mC ? mC[1].trim() : cursoNomeRaw;
 
     // Find matching course in D.secCursos — name match first, then fallback to anoEsc only
-    const cursosAno = getSecCursos(anoLetivo);
-    const cursosProf = cursosAno.filter(c=>c.tipo==='Prof');
-    let curso = cursosProf.find(c=>{
-      if(c.anoEsc!==anoEsc) return false;
-      const cN = normStr(c.nome);
-      const pN = normStr(cursoNome);
-      return cN.includes(pN.split(' ').filter(w=>w.length>3)[0]||'') ||
-             pN.includes(cN.split(' ').filter(w=>w.length>3)[0]||'');
-    });
-    // Fallback: any Prof course with matching anoEsc
-    if(!curso) curso = cursosProf.find(c=>c.anoEsc===anoEsc);
+    // Try detected anoLetivo first, then current app year as fallback
+    const yearsToTry = [anoLetivo, getAno()].filter((v,i,a)=>a.indexOf(v)===i);
+    let curso = null;
+    let cursoAnoLetivo = anoLetivo;
+    for(const tryAno of yearsToTry){
+      const cursosProf = (getSecCursos(tryAno)||[]).filter(c=>c.tipo==='Prof');
+      curso = cursosProf.find(c=>{
+        if(c.anoEsc!==anoEsc) return false;
+        const cN = normStr(c.nome);
+        const pN = normStr(cursoNome);
+        return cN.includes(pN.split(' ').filter(w=>w.length>3)[0]||'') ||
+               pN.includes(cN.split(' ').filter(w=>w.length>3)[0]||'');
+      }) || cursosProf.find(c=>c.anoEsc===anoEsc);
+      if(curso){ cursoAnoLetivo=tryAno; break; }
+    }
 
     if(!curso){
-      const disponiveis = cursosProf.map(c=>`${c.anoEsc}.º "${c.nome}"`).join(', ') || 'nenhum';
-      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: ${anoEsc}.º Ano não encontrado em Profissional (${anoLetivo}).<br>
+      const allProf = yearsToTry.flatMap(y=>(getSecCursos(y)||[]).filter(c=>c.tipo==='Prof').map(c=>`${c.anoEsc}.º "${c.nome}" (${y})`));
+      const disponiveis = allProf.join(', ') || 'nenhum';
+      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: ${anoEsc}.º Ano não encontrado em Profissional.<br>
         <small>Cursos disponíveis: ${disponiveis}. Cria o curso na aba Profissional.</small></div>`;
       return;
     }
+    // Use the year where the course was found
+    const anoLetivoUsar = cursoAnoLetivo;
 
     // Find discipline header row — look for known discipline abbreviations
     // Disciplines appear as repeated codes in the header: "PORT. PORT. PORT. I.CONT..."
@@ -3947,14 +3954,14 @@ function parseProfPDFText(text, fname, log){
     const discLog=[];
     Object.entries(discAgg).forEach(([disc,{pos,tot}])=>{
       const pct=parseFloat((pos/tot*100).toFixed(2));
-      const k=`sec|${anoLetivo}|${curso.id}|${disc}|${per}`;
+      const k=`sec|${anoLetivoUsar}|${curso.id}|${disc}|${per}`;
       userOverrides[k]=pct; D.res[k]=pct;
       if(!(curso.disc||[]).includes(disc)){if(!curso.disc)curso.disc=[];curso.disc.push(disc);}
       discLog.push(`${disc}:${pct}%`);
       imported++;
     });
 
-    log.innerHTML+=`<div style="color:#065f46">✓ Pág.${pi+1} — <strong>${curso.nome}</strong> · ${anoLetivo} · ${per}.º P · ${imported} disciplinas: ${discLog.join(', ')}</div>`;
+    log.innerHTML+=`<div style="color:#065f46">✓ Pág.${pi+1} — <strong>${curso.nome}</strong> · ${anoLetivoUsar} · ${per}.º P · ${imported} disciplinas: ${discLog.join(', ')}</div>`;
     save(); renderSecundario('Prof');
   });
 }
