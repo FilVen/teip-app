@@ -20,7 +20,7 @@ header{background:#1a3a6b;color:#fff;padding:.75rem 1.5rem;display:flex;align-it
 header h1{font-size:1rem;font-weight:700;letter-spacing:-.01em}
 header .sub{font-size:.72rem;opacity:.75;margin-top:1px}
 .hbadge{background:rgba(255,255,255,.18);padding:2px 10px;border-radius:20px;font-size:.72rem;font-weight:700;margin-left:auto}
-nav{background:#fff;border-bottom:2px solid #dde3ed;padding:0 1.5rem;display:flex;gap:0;overflow-x:auto}
+nav{background:#fff;border-bottom:2px solid #dde3ed;padding:0 1.5rem;display:flex;gap:0;overflow-x:auto;position:sticky;top:var(--header-h,50px);z-index:99;box-shadow:0 2px 4px rgba(0,0,0,.06)}
 nav button{padding:.6rem 1.1rem;font-size:.8rem;font-weight:600;color:#6b7280;border:none;background:none;cursor:pointer;border-bottom:3px solid transparent;white-space:nowrap;transition:all .15s;margin-bottom:-2px}
 nav button.active{color:#1a3a6b;border-bottom-color:#1a3a6b}
 nav button:hover:not(.active){color:#374151;background:#f9fafb}
@@ -131,21 +131,38 @@ td.empty{color:#9ca3af;font-size:.7rem}
   #print-wrapper { display: block !important; }
   .rpt-page { page-break-after: always; }
   .rpt-page:last-child { page-break-after: avoid; }
-  .rpt-title { font-size: 14pt; font-weight: 700; color: #1a3a6b; margin-bottom: .3cm; }
-  .rpt-subtitle { font-size: 10pt; font-weight: 700; color: #1a3a6b; margin: .35cm 0 .15cm; border-bottom: 1px solid #1a3a6b; padding-bottom: 2px; }
-  .rpt-table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: .35cm; }
+  .rpt-title { font-size: 13pt; font-weight: 700; color: #1a3a6b; margin-bottom: .2cm; }
+  .rpt-subtitle { font-size: 10pt; font-weight: 700; color: #1a3a6b; margin: .3cm 0 .12cm; border-bottom: 1.5px solid #1a3a6b; padding-bottom: 2px; }
+  .rpt-table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: .3cm; }
   .rpt-table th { background: #1a3a6b !important; color: #fff !important; padding: 3px 5px; text-align: center; border: 1px solid #1a3a6b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .rpt-table th.left { text-align: left; }
-  .rpt-table td { padding: 2px 5px; border: 1px solid #d1d5db; text-align: center; }
+  .rpt-table td { padding: 3px 5px; border: 1px solid #d1d5db; text-align: center; }
   .rpt-table td.left { text-align: left; font-weight: 600; }
   .rpt-table tr:nth-child(even) td { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .rpt-above { color: #065f46 !important; font-weight: 700; }
-  .rpt-below { color: #dc2626 !important; font-weight: 700; }
-  .rpt-teip { background: #dbeafe !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .rpt-media { background: #f0fdf4 !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .rpt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid #1a3a6b; padding-bottom: .2cm; margin-bottom: .4cm; }
-  .rpt-meta { font-size: 7.5pt; color: #6b7280; margin-bottom: .2cm; }
-  .rpt-nota { font-size: 7.5pt; color: #6b7280; font-style: italic; margin-top: .15cm; }
+
+  /* ✓ ACIMA DA META — fundo verde + texto branco + ✓ */
+  .rpt-above {
+    background: #16a34a !important;
+    color: #fff !important;
+    font-weight: 700;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  /* ✗ ABAIXO DA META — fundo vermelho + texto branco */
+  .rpt-below {
+    background: #dc2626 !important;
+    color: #fff !important;
+    font-weight: 700;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  .rpt-teip { background: #1a3a6b !important; color: #fff !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-media { background: #1e3a5f !important; color: #fff !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-media td { background: #1e3a5f !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid #1a3a6b; padding-bottom: .2cm; margin-bottom: .35cm; }
+  .rpt-meta { font-size: 7.5pt; color: #6b7280; margin-top: .1cm; }
+  .rpt-nota { font-size: 7.5pt; color: #6b7280; font-style: italic; margin-top: .1cm; }
   .rpt-badge { display: inline-block; background: #dbeafe; color: #1e3a8a; font-size: 7pt; padding: 1px 5px; border-radius: 3px; font-weight: 700; }
 }
 @page { margin: 1.2cm; size: A4 landscape; }
@@ -498,6 +515,31 @@ td.empty{color:#9ca3af;font-size:.7rem}
 
     <div style="margin-top:.65rem;background:#fffbeb;border:1px solid #fde68a;border-radius:5px;padding:.5rem .75rem;font-size:.73rem;color:#92400e">
       <strong>Como criar o token:</strong> github.com → foto → Settings → Developer settings → Personal access tokens → Fine-grained → Generate → selecciona repositório → Contents: Read and Write → Generate
+    </div>
+  </div>
+
+  <!-- BACKUP COMPLETO -->
+  <div class="card" style="margin-bottom:1rem;border-left:3px solid #065f46">
+    <div class="card-title" style="display:flex;align-items:center;gap:.6rem">
+      💾 Backup Completo
+      <span style="background:#d1fae5;color:#065f46;font-size:.68rem;padding:2px 7px;border-radius:10px;font-weight:600">Dados + Config + Credenciais</span>
+    </div>
+    <p style="font-size:.75rem;color:#6b7280;margin-bottom:.75rem">
+      Exporta <strong>todos os dados actuais</strong> — resultados, taxas, configurações, anos letivos, metas e credenciais GitHub encriptadas — num único ficheiro <code>.teip-backup</code>.<br>
+      Para restaurar em qualquer computador: importa o ficheiro e insere a senha.
+    </p>
+    <div style="display:flex;gap:.5rem;align-items:flex-end;flex-wrap:wrap;margin-bottom:.5rem">
+      <div class="form-group" style="margin:0;flex:1;min-width:160px">
+        <label style="font-size:.72rem">Senha do backup</label>
+        <input type="password" id="backup-senha" placeholder="Mínimo 6 caracteres" style="width:100%;font-size:.78rem">
+      </div>
+      <button class="btn btn-primary btn-sm" style="background:#065f46" onclick="backupExportar()">💾 Exportar backup</button>
+      <button class="btn btn-sm" onclick="document.getElementById('backup-file-input').click()">📂 Restaurar backup</button>
+      <input type="file" id="backup-file-input" accept=".teip-backup,.json" style="display:none" onchange="backupImportar(event)">
+    </div>
+    <p id="backup-msg" style="font-size:.72rem;margin-top:.25rem"></p>
+    <div style="background:#f0fdf4;border:1px solid #86efac;border-radius:5px;padding:.4rem .75rem;font-size:.72rem;color:#166534;margin-top:.4rem">
+      💡 <strong>Quando usar:</strong> antes de limpar o browser, ao mudar de computador, ou como cópia de segurança periódica. Basta este ficheiro + a senha para restaurar tudo em qualquer lado.
     </div>
   </div>
 
@@ -3367,609 +3409,27 @@ function renderTaxa(){
   const el=document.getElementById('body-taxa');
   if(!el) return;
   const ano=getAno();
-  let html='';
-
-  TAXA_TEIP_GRUPOS.forEach(grupo=>{
-    const{label,anoEsc,ciclo,nota}=grupo;
-    const meta=getMeta(ciclo);  // reads from D.metas for current year
-    const turmas=getTurmas(ano,anoEsc);
-
-    html+=`<div style="margin-bottom:1.25rem">
-      <div style="background:#1a3a6b;color:#fff;padding:.4rem .9rem;font-size:.8rem;font-weight:700;border-radius:5px 5px 0 0;display:flex;align-items:center;justify-content:space-between">
-        <span>${label} — Taxa TEIP: ${meta!==null?meta+'%':'não definida'}</span>
-      </div>
-      <div style="border:1px solid #c8d0db;border-top:none;background:#fff;border-radius:0 0 5px 5px;overflow-x:auto">`;
-
-    if(!turmas.length){
-      html+=`<p class="no-data">Sem turmas configuradas. Use "⚙ Gerir turmas" para adicionar.</p>`;
-    } else {
-      html+=`<table style="width:100%"><thead><tr>
-        <th class="left" style="min-width:80px">Turma</th>
-        <th>1.º Período</th>
-        <th>2.º Período</th>
-        <th>3.º Período</th>
-      </tr></thead><tbody>`;
-
-      turmas.forEach(t=>{
-        const v1=getTaxaRes(ano,anoEsc,t,1);
-        const v2=getTaxaRes(ano,anoEsc,t,2);
-        const v3=getTaxaRes(ano,anoEsc,t,3);
-        const cC=v=>v===null?'':(parseFloat(v)>=meta?'above':'below');
-        const fmtV=v=>v!==null?parseFloat(v).toFixed(1)+'%':'<span class="empty">—</span>';
-        html+=`<tr>
-          <td class="left"><span class="turma-badge" style="background:#e0e7ff;color:#3730a3;font-size:.78rem;padding:2px 8px;border-radius:4px">${t}</span></td>
-          <td class="${cC(v1)}" onclick="editTaxa('${ano}',${anoEsc},'${t}',1)" style="cursor:pointer">${fmtV(v1)}</td>
-          <td class="${cC(v2)}" onclick="editTaxa('${ano}',${anoEsc},'${t}',2)" style="cursor:pointer">${fmtV(v2)}</td>
-          <td class="${cC(v3)}" onclick="editTaxa('${ano}',${anoEsc},'${t}',3)" style="cursor:pointer">${fmtV(v3)}</td>
-        </tr>`;
-      });
-      html+=`</tbody></table>`;
-    }
-    html+=`</div>`;
-    if(nota) html+=`<p style="font-size:.72rem;color:#6b7280;font-style:italic;margin-top:.25rem;padding-left:.25rem">*** ${nota}</p>`;
-    html+=`</div>`;
-  });
-
-  html+=`<div class="legend" style="margin-top:.5rem">
-    <div class="legend-item"><div class="lbox" style="background:#d1fae5;border:1px solid #6ee7b7"></div>Acima da meta TEIP</div>
-    <div class="legend-item"><div class="lbox" style="background:#fee2e2;border:1px solid #fca5a5"></div>Abaixo da meta TEIP</div>
-    <em style="font-size:.72rem;color:#6b7280">Clique numa célula para editar o valor</em>
-  </div>`;
-
-  el.innerHTML=html;
-}
-
-// Inline editing: click cell to edit
-function editTaxa(ano, anoEsc, turma, periodo){
-  const cur=getTaxaRes(ano,anoEsc,turma,periodo);
-  const grLabel=anoEsc===0?'1.º Ciclo':`${anoEsc}.º Ano`;
-  const val=prompt(`${grLabel} — Turma ${turma} — ${periodo}.º Período\nTaxa de alunos com positivas (%):`,(cur!==null?cur:''));
-  if(val===null) return;
-  const n=parseFloat(val.replace(',','.'));
-  if(isNaN(n)||n<0||n>100){alert('Valor inválido. Insira um número entre 0 e 100.');return;}
-  setTaxaRes(ano,anoEsc,turma,periodo,n);
-  renderTaxa();
-}
-
-// Manage turmas modal
-function openTaxaTurmaModal(){
-  const ano=getAno();
-  // anoEsc=0 for 1ciclo group, then 5-9
-  const grupos=[
-    {anoEsc:0, label:'1.º Ciclo (agrupado)'},
-    {anoEsc:5, label:'5.º Ano'},
-    {anoEsc:6, label:'6.º Ano'},
-    {anoEsc:7, label:'7.º Ano'},
-    {anoEsc:8, label:'8.º Ano'},
-    {anoEsc:9, label:'9.º Ano'},
-  ];
-  let h='';
-  grupos.forEach(({anoEsc,label})=>{
-    const turmas=getTurmas(ano,anoEsc);
-    h+=`<div style="display:flex;align-items:center;gap:.75rem;padding:.35rem 0;border-bottom:1px solid #f3f4f6">
-      <span style="min-width:120px;font-weight:600;font-size:.78rem">${label}</span>
-      <input type="text" id="taxa-turmas-${anoEsc}" value="${turmas.join(', ')}"
-        placeholder="ex: A, B, C" style="flex:1;font-size:.78rem">
-    </div>`;
-  });
-  document.getElementById('taxa-turmas-list').innerHTML=h;
-  openModal('m-taxa-turma');
-}
-
-function salvarTurmasTaxa(){
-  const ano=getAno();
-  if(!D.turmasTaxa) D.turmasTaxa={};
-  if(!D.turmasTaxa[ano]) D.turmasTaxa[ano]={};
-  [0,5,6,7,8,9].forEach(ae=>{
-    const inp=document.getElementById(`taxa-turmas-${ae}`);
-    if(!inp) return;
-    const letras=inp.value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
-    D.turmasTaxa[ano][ae]=letras;
-  });
-  save(); closeModal('m-taxa-turma'); renderTaxa();
 }
 
 // ============================================================
-// CREDENTIAL BACKUP — AES-GCM encryption via Web Crypto API
-// ============================================================
-
-async function credDeriveKey(senha, salt){
-  const enc = new TextEncoder();
-  const keyMaterial = await crypto.subtle.importKey(
-    'raw', enc.encode(senha), {name:'PBKDF2'}, false, ['deriveKey']
-  );
-  return crypto.subtle.deriveKey(
-    {name:'PBKDF2', salt, iterations:100000, hash:'SHA-256'},
-    keyMaterial, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
-  );
-}
-
-async function credExportar(){
-  const senha = document.getElementById('cred-senha').value;
-  const token = document.getElementById('gh-token').value.trim();
-  const repo  = document.getElementById('gh-repo').value.trim();
-  const msg   = document.getElementById('cred-msg');
-
-  if(senha.length < 6){ msg.style.color='#dc2626'; msg.textContent='A senha deve ter pelo menos 6 caracteres.'; return; }
-  if(!token || !repo){ msg.style.color='#dc2626'; msg.textContent='Preenche primeiro o token e o repositório.'; return; }
-
-  try {
-    const salt = crypto.getRandomValues(new Uint8Array(16));
-    const iv   = crypto.getRandomValues(new Uint8Array(12));
-    const key  = await credDeriveKey(senha, salt);
-    const enc  = new TextEncoder();
-    const payload = JSON.stringify({token, repo, _v:1, _d: new Date().toISOString()});
-    const encrypted = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(payload));
-
-    // Pack: salt(16) + iv(12) + ciphertext
-    const packed = new Uint8Array(salt.length + iv.length + encrypted.byteLength);
-    packed.set(salt, 0);
-    packed.set(iv, 16);
-    packed.set(new Uint8Array(encrypted), 28);
-
-    // Download as .teip-cred file
-    const b64 = btoa(String.fromCharCode(...packed));
-    const blob = new Blob([JSON.stringify({_teip_cred:1, data:b64})], {type:'application/json'});
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = 'teip-credenciais.teip-cred';
-    a.click();
-
-    msg.style.color='#065f46';
-    msg.textContent='✓ Credenciais exportadas. Guarda o ficheiro num local seguro.';
-  } catch(e){
-    msg.style.color='#dc2626';
-    msg.textContent='Erro ao encriptar: '+e.message;
-  }
-}
-
-async function credImportar(event){
-  const file = event.target.files[0];
-  const msg  = document.getElementById('cred-msg');
-  event.target.value='';
-  if(!file) return;
-
-  const senha = document.getElementById('cred-senha').value;
-  if(senha.length < 6){ msg.style.color='#dc2626'; msg.textContent='Insere a senha antes de importar.'; return; }
-
-  try {
-    const text = await file.text();
-    const obj  = JSON.parse(text);
-    if(!obj._teip_cred || !obj.data){ msg.style.color='#dc2626'; msg.textContent='Ficheiro inválido.'; return; }
-
-    // Unpack
-    const packed = Uint8Array.from(atob(obj.data), c=>c.charCodeAt(0));
-    const salt = packed.slice(0, 16);
-    const iv   = packed.slice(16, 28);
-    const ciphertext = packed.slice(28);
-
-    const key = await credDeriveKey(senha, salt);
-    const dec = new TextDecoder();
-    const decrypted = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ciphertext);
-    const payload = JSON.parse(dec.decode(decrypted));
-
-    // Apply credentials
-    if(payload.token && payload.repo){
-      Store.set('gh_token', payload.token);
-      Store.set('gh_repo',  payload.repo);
-      document.getElementById('gh-token').value = payload.token;
-      document.getElementById('gh-repo').value  = payload.repo;
-      msg.style.color='#065f46';
-      msg.textContent=`✓ Credenciais restauradas (${payload.repo}). Clica "Ligar e sincronizar".`;
-    }
-  } catch(e){
-    msg.style.color='#dc2626';
-    msg.textContent='✗ Senha incorrecta ou ficheiro corrompido.';
-  }
-}
-
-function openTaxaImport(){
-  const sel = document.getElementById('taxa-import-ano');
-  if(sel){ sel.innerHTML=''; D.anos.forEach(a=>{ const o=document.createElement('option'); o.value=a; o.textContent=a; if(a===getAno()) o.selected=true; sel.appendChild(o); }); }
-  document.getElementById('taxa-import-log').style.display='none';
-  document.getElementById('taxa-import-log').innerHTML='';
-  openModal('m-taxa-import');
-}
-
-function processTaxaFiles(files){
-  if(!files||!files.length) return;
-  const log = document.getElementById('taxa-import-log');
-  log.style.display='block';
-  log.innerHTML='';
-  const anoLetivo = document.getElementById('taxa-import-ano')?.value || getAno();
-  const forceAnoEsc = document.getElementById('taxa-import-anoesc')?.value || '';
-
-  Array.from(files).forEach(file => {
-    const reader = new FileReader();
-    reader.onload = e => {
-      try {
-        const wb = XLSX.read(new Uint8Array(e.target.result), {type:'array'});
-        const ws = wb.Sheets[wb.SheetNames[0]];
-        const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:null});
-        if(!rows.length){ log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — ficheiro vazio</div>`; return; }
-
-        // 1. Detect year group
-        let anoEsc = forceAnoEsc !== '' ? parseInt(forceAnoEsc) : null;
-        const fnameClean = file.name.replace(/\.xlsx?$/i,'').replace(/_/g,' ');
-        if(anoEsc === null){
-          const mAe = fnameClean.match(/\b(\d+)\.?[ºo°]?\s*[Aa]no\b/) ||
-                      fnameClean.match(/\b(\d+)\.?[ºo°]\b/) ||
-                      fnameClean.match(/\b(\d+)\b/);
-          if(mAe){ const n=parseInt(mAe[1]); anoEsc = n<=4 ? 0 : n; }
-          else if(/1\.?\s*[ºo°]?\s*[Cc]iclo/i.test(fnameClean)) anoEsc=0;
-        }
-        if(anoEsc===null){
-          log.innerHTML+=`<div style="color:#f59e0b">⚠ <strong>${file.name}</strong> — ano escolar não detectado. Selecciona manualmente.</div>`;
-          return;
-        }
-
-        // 2. Detect turma from filename (e.g. "- A -", "- B -")
-        const mTurma = fnameClean.match(/[-–]\s*([A-Z])\s*[-–]/) ||
-                       fnameClean.match(/\s([A-Z])\s*[-–]/) ||
-                       fnameClean.match(/[-–]\s*([A-Z])\s*$/);
-        const turmaNome = mTurma ? mTurma[1].toUpperCase() : null;
-
-        // 3. Parse header for periods
-        const headerRow = rows[0] || [];
-        const colToPeriod = {};
-        headerRow.forEach((cell, ci) => {
-          if(!cell) return;
-          const m = String(cell).trim().match(/^(\d)/);
-          if(m){ const n=parseInt(m[1]); if(n>=1&&n<=3) colToPeriod[ci]=n; }
-        });
-        if(!Object.keys(colToPeriod).length){
-          log.innerHTML+=`<div style="color:#dc2626">✗ <strong>${file.name}</strong> — cabeçalho de períodos não encontrado</div>`;
-          return;
-        }
-
-        // 4. Detect format and build taxaDataRows
-        const dataRows = rows.slice(1).filter(r=>r&&r[0]!==null&&String(r[0]).trim());
-        const isTurmaFormat = dataRows.every(r=>/^[A-Z]\d*$/.test(String(r[0]).trim().toUpperCase()));
-        const isGradeFormat = dataRows.some(r=>/^(\d|neg|pos)/i.test(String(r[0]).trim()));
-
-        let taxaDataRows = [];
-        if(isTurmaFormat){
-          taxaDataRows = dataRows;
-        } else if(isGradeFormat){
-          // Extract Pos. row
-          const posRow = dataRows.find(r=>/^pos/i.test(String(r[0]).trim()));
-          if(posRow && turmaNome){
-            taxaDataRows = [[turmaNome, ...Object.keys(colToPeriod).map(ci=>posRow[parseInt(ci)])]];
-          } else if(posRow){
-            log.innerHTML+=`<div style="color:#f59e0b">⚠ <strong>${file.name}</strong> — formato de pauta. Inclui a turma no nome do ficheiro (ex: "- A -")</div>`;
-            return;
-          }
-        } else if(!isTurmaFormat && !isGradeFormat && turmaNome){
-          // Discipline-per-row format: PORT, ING, MAT... each row = one discipline
-          // Calculate average per period (ignore zeros = not evaluated that period)
-          const sortedCols = Object.entries(colToPeriod).sort((a,b)=>a[1]-b[1]);
-          const avgVals = sortedCols.map(([ci, per])=>{
-            const vals = dataRows
-              .map(r=>r[parseInt(ci)])
-              .filter(v=>v!==null&&v!==undefined&&parseFloat(v)>0);
-            return vals.length ? vals.reduce((a,b)=>a+parseFloat(b),0)/vals.length : null;
-          });
-          taxaDataRows = [[turmaNome, ...avgVals]];
-          // Remap colToPeriod to sequential indices for the synthetic row
-          Object.keys(colToPeriod).forEach(k=>delete colToPeriod[k]);
-          sortedCols.forEach(([,per],idx)=>{ colToPeriod[idx+1]=per; });
-        }
-
-        if(!taxaDataRows.length){
-          log.innerHTML+=`<div style="color:#f59e0b">⚠ <strong>${file.name}</strong> — sem dados reconhecidos</div>`;
-          return;
-        }
-
-        // 5. Import
-        if(!D.turmasTaxa[anoLetivo]) D.turmasTaxa[anoLetivo]={};
-        if(!D.turmasTaxa[anoLetivo][anoEsc]) D.turmasTaxa[anoLetivo][anoEsc]=[];
-        let imported=0;
-        const turmasLog=[];
-
-        taxaDataRows.forEach((row) => {
-          const turma = String(row[0]).trim().toUpperCase();
-          if(!D.turmasTaxa[anoLetivo][anoEsc].includes(turma))
-            D.turmasTaxa[anoLetivo][anoEsc].push(turma);
-          // isTurmaFormat: use original col indices
-          // synthetic rows (grade or disc format): colToPeriod remapped to 1,2,3
-          Object.entries(colToPeriod).forEach(([ci, per]) => {
-            const v = row[parseInt(ci)];
-            if(v!==null && v!==undefined && v!=='' && !isNaN(parseFloat(v)) && parseFloat(v)>0){
-              const k=`${anoLetivo}|${anoEsc}|${turma}|${per}`;
-              userTaxaOverrides[k]=parseFloat(v);
-              D.taxaRes[k]=parseFloat(v);
-              imported++;
-            }
-          });
-          turmasLog.push(turma);
-        });
-
-        const lbl = anoEsc===0?'1.º Ciclo':`${anoEsc}.º Ano`;
-        log.innerHTML+=`<div style="color:#065f46">✓ <strong>${file.name}</strong> — ${lbl} · ${anoLetivo} · Turmas: ${turmasLog.join(', ')} · ${imported} valor(es)</div>`;
-        save(); renderTaxa();
-      } catch(err){
-        log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — erro: ${err.message}</div>`;
-      }
-    };
-    reader.readAsArrayBuffer(file);
-  });
-}
-
-// ============================================================
-// PDF IMPORT — Profissional (pautas de avaliação)
-// ============================================================
-
-// Dynamically load PDF.js if needed
-function loadPdfJs(){
-  return new Promise((resolve,reject)=>{
-    if(window.pdfjsLib){ resolve(); return; }
-    const s=document.createElement('script');
-    s.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
-    s.onload=()=>{
-      pdfjsLib.GlobalWorkerOptions.workerSrc='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-      resolve();
-    };
-    s.onerror=reject;
-    document.head.appendChild(s);
-  });
-}
-
-async function processProfPDF(files){
-  if(!files||!files.length) return;
-  const log=document.getElementById('pdf-prof-log');
-  log.style.display='block'; log.innerHTML='';
-
-  for(const file of Array.from(files)){
-    // Handle pre-parsed JSON files
-    if(file.name.endsWith('.json')){
-      try {
-        const text = await file.text();
-        const data = JSON.parse(text);
-        if(data._teip_prof_pdf && data.cursos){
-          let totalImported = 0;
-          data.cursos.forEach(c=>{
-            const anoLetivo = c.anoLetivo || getAno();
-            const per = c.periodo || 3;
-            const cursoId = c.cursoId;
-            // Find course: by id first, then by anoEsc among Prof courses
-            const cursosProf = (D.secCursos[anoLetivo]||[]).filter(x=>x.tipo==='Prof');
-            const curso = (D.secCursos[anoLetivo]||[]).find(x=>x.id===cursoId) ||
-                          cursosProf.find(x=>x.anoEsc===c.anoEsc);
-            if(!curso){
-              const disponiveis = cursosProf.map(x=>`${x.anoEsc}.º (${x.nome})`).join(', ') || 'nenhum';
-              log.innerHTML+=`<div style="color:#f59e0b">⚠ Curso ${c.anoEsc}.º não encontrado em ${anoLetivo}.<br>
-                <small>Cursos profissionais disponíveis: ${disponiveis}.<br>
-                Cria o curso na aba Profissional e reimporta.</small></div>`;
-              return;
-            }
-            const discLog=[];
-            Object.entries(c.discs).forEach(([disc,pct])=>{
-              const k=`sec|${anoLetivo}|${curso.id}|${disc}|${per}`;
-              userOverrides[k]=pct; D.res[k]=pct;
-              if(!(curso.disc||[]).includes(disc)){if(!curso.disc)curso.disc=[];curso.disc.push(disc);}
-              discLog.push(`${disc}:${pct}%`);
-              totalImported++;
-            });
-            log.innerHTML+=`<div style="color:#065f46">✓ <strong>${curso.nome}</strong> · ${anoLetivo} · ${per}.º P · ${Object.keys(c.discs).length} disciplinas: ${discLog.join(', ')}</div>`;
-          });
-          save(); renderSecundario('Prof');
-          log.innerHTML+=`<div style="color:#065f46;font-weight:700">✅ Total: ${totalImported} valores importados de ${data.cursos.length} cursos</div>`;
-        } else {
-          log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — JSON não reconhecido (falta _teip_prof_pdf)</div>`;
-        }
-      } catch(e){
-        log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — erro: ${e.message}</div>`;
-      }
-      continue;
-    }
-
-    // Handle PDF files via PDF.js
-    log.innerHTML+=`<div style="color:#6b7280">📄 ${file.name} — A extrair texto do PDF...</div>`;
-    try { await loadPdfJs(); } catch(e){ log.innerHTML+=`<div style="color:#dc2626">✗ Erro ao carregar PDF.js: ${e.message}</div>`; return; }
-    try {
-      const buf = await file.arrayBuffer();
-      const pdf = await pdfjsLib.getDocument({data:buf}).promise;
-      let fullText = '';
-      for(let p=1;p<=pdf.numPages;p++){
-        const page = await pdf.getPage(p);
-        const tc = await page.getTextContent();
-        const items = tc.items.sort((a,b)=> b.transform[5]-a.transform[5] || a.transform[4]-b.transform[4]);
-        let lastY = null;
-        for(const item of items){
-          const y = Math.round(item.transform[5]);
-          if(lastY!==null && Math.abs(y-lastY)>5) fullText+='\n';
-          fullText+=item.str+' ';
-          lastY=y;
-        }
-        fullText+='\n---PAGE---\n';
-      }
-      parseProfPDFText(fullText, file.name, log);
-    } catch(err){
-      log.innerHTML+=`<div style="color:#dc2626">✗ ${file.name} — ${err.message}<br><small>Tenta usar o JSON pré-processado pelo Claude em vez do PDF.</small></div>`;
-    }
-  }
-}
-
-
-
-function parseProfPDFText(text, fname, log){
-  const ano=getAno();
-  const lines = text.split('\n').map(l=>l.trim()).filter(Boolean);
-
-  // Detect year letivo: prefer "2025/26" format (school year) over "2025/2028" (course duration)
-  let anoLetivo = ano;
-  // First try short format: 2025/26
-  const mAnoShort = text.match(/\b(\d{4})\/(\d{2})\b/);
-  if(mAnoShort){
-    anoLetivo = `${mAnoShort[1]}/${mAnoShort[1].slice(0,2)}${mAnoShort[2]}`;
-  } else {
-    // Fallback: long format 2025/2026
-    const mAnoLong = text.match(/\b(\d{4})\/(\d{4})\b/);
-    if(mAnoLong) anoLetivo = `${mAnoLong[1]}/${mAnoLong[2]}`;
-  }
-
-  // Detect period: "3º Período", "2.º Período", etc.
-  let per = 3;
-  const mPer = text.match(/([1-3])[ºo°]\.?\s*Per[íi]odo/i);
-  if(mPer) per = parseInt(mPer[1]);
-
-  // Detect course name and year group from "Turma: X(YY)"
-  // "Turma: 1(10)" means turma 1, year group 10
-  const turmaMatches = [...text.matchAll(/Turma[:\s]+\d+\((\d+)\)/gi)];
-
-  // Detect course name: "Técnico de Restaurante/Bar", "Técnico Vitivinícola", etc.
-  const cursoMatch = text.match(/T[eé]cnico\s+(?:de\s+)?([A-Za-zÀ-ÿ/\s]+?)(?:\s*-\s*\d{4}|\s*\n)/i);
-  const cursoNomeRaw = cursoMatch ? cursoMatch[1].trim() : '';
-
-  // Parse each page section
-  const pages = text.split('---PAGE---').filter(p=>p.trim());
-
-  pages.forEach((pageText, pi) => {
-    // Get turma/year for this page
-    const mT = pageText.match(/Turma[:\s]+\d+\((\d+)\)/i);
-    if(!mT) return;
-    const anoEsc = parseInt(mT[1]);
-
-    // Get course for this page
-    const mC = pageText.match(/T[eé]cnico\s+(?:de\s+)?([A-Za-zÀ-ÿ/\s]+?)(?:\s*-\s*\d{4}|\s*\n)/i);
-    const cursoNome = mC ? mC[1].trim() : cursoNomeRaw;
-
-    // Find matching course in D.secCursos — name match first, then fallback to anoEsc only
-    // Try detected anoLetivo first, then current app year as fallback
-    const yearsToTry = [anoLetivo, getAno()].filter((v,i,a)=>a.indexOf(v)===i);
-    let curso = null;
-    let cursoAnoLetivo = anoLetivo;
-    for(const tryAno of yearsToTry){
-      const cursosProf = (getSecCursos(tryAno)||[]).filter(c=>c.tipo==='Prof');
-      curso = cursosProf.find(c=>{
-        if(c.anoEsc!==anoEsc) return false;
-        const cN = normStr(c.nome);
-        const pN = normStr(cursoNome);
-        return cN.includes(pN.split(' ').filter(w=>w.length>3)[0]||'') ||
-               pN.includes(cN.split(' ').filter(w=>w.length>3)[0]||'');
-      }) || cursosProf.find(c=>c.anoEsc===anoEsc);
-      if(curso){ cursoAnoLetivo=tryAno; break; }
-    }
-
-    if(!curso){
-      const allProf = yearsToTry.flatMap(y=>(getSecCursos(y)||[]).filter(c=>c.tipo==='Prof').map(c=>`${c.anoEsc}.º "${c.nome}" (${y})`));
-      const disponiveis = allProf.join(', ') || 'nenhum';
-      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: ${anoEsc}.º Ano não encontrado em Profissional.<br>
-        <small>Cursos disponíveis: ${disponiveis}. Cria o curso na aba Profissional.</small></div>`;
-      return;
-    }
-    // Use the year where the course was found
-    const anoLetivoUsar = cursoAnoLetivo;
-
-    // Find discipline header row — look for known discipline abbreviations
-    // Disciplines appear as repeated codes in the header: "PORT. PORT. PORT. I.CONT..."
-    const discLine = pageText.split('\n').find(l=>{
-      const upper=l.toUpperCase();
-      return (upper.includes('PORT') || upper.includes('E.FIS') || upper.includes('MATEM')) &&
-             upper.split(/\s+/).filter(w=>w.length>2).length > 5;
-    });
-
-    if(!discLine){
-      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: Não encontrou linha de disciplinas</div>`;
-      return;
-    }
-
-    // Parse discipline tokens
-    const discTokens = discLine.split(/\s+/).filter(w=>w.length>1);
-
-    // Disc name → app code mapping
-    const DISC_PDF_MAP = {
-      'PORT.':'PORT','PORT':'PORT','I.CONT':'ING-I','ICONT':'ING-I',
-      'A.I.':'AI','AI':'AI','E.FIS':'EDF','EFIS':'EDF',
-      'T.I.C.':'TIC','TIC':'TIC','ECON.':'ECONOMIA','ECON':'ECONOMIA',
-      'MATEM':'MATEMÁT','MATEMÁT':'MATEMÁT','PSIC.':'PSICOLOGIA','PSIC':'PSICOLOGIA',
-      'BIOL.':'BIOLOGIA','BIOL':'BIOLOGIA','F.Q.':'FIS QUIMICA','FQ':'FIS QUIMICA',
-      'ENO':'ENOLOGIA','GM':'GM','VITI':'VITICULTUR','VITIT':'VITICULTUR',
-      'LTIF':'LTIF','GMRB':'GMRB','NUTRI':'NUTRIÇÃO','SERVIÇOS':'SERVIÇOS','SERVIC':'SERVIÇOS'
-    };
-
-    // Map each token to a disc code
-    const cols = discTokens.map(t=>{
-      const tU=t.toUpperCase().replace(/\.$/,'');
-      return DISC_PDF_MAP[t.toUpperCase()] || DISC_PDF_MAP[tU] ||
-             Object.entries(DISC_PDF_MAP).find(([k])=>tU.startsWith(k.replace('.','')))?.[1] || null;
-    });
-
-    // Find student data rows — lines starting with a number and containing grades/AM
-    const studentRows = pageText.split('\n').filter(l=>{
-      const t=l.trim();
-      return /^\d+\s+[A-ZÀ-Ú]/.test(t) && (t.includes('AM') || /\d{1,2}/.test(t));
-    });
-
-    if(!studentRows.length){
-      log.innerHTML+=`<div style="color:#f59e0b">⚠ Pág. ${pi+1}: Sem linhas de alunos detectadas</div>`;
-      return;
-    }
-
-    // Count positives per disc column
-    const discPos  = new Array(cols.length).fill(0);
-    const discTot  = new Array(cols.length).fill(0);
-
-    studentRows.forEach(row=>{
-      // Extract all tokens after student name
-      const tokens = row.trim().split(/\s+/);
-      // Skip index and name (find where numbers/AM start)
-      let dataStart = 1;
-      while(dataStart<tokens.length && !/^\d{2,}$|^AM$|^TR$|^--$/.test(tokens[dataStart])) dataStart++;
-      const vals = tokens.slice(dataStart);
-      cols.forEach((disc,ci)=>{
-        if(!disc) return;
-        const v = vals[ci];
-        if(!v || v==='--' || v==='AM' || v==='TR' || v==='NF') return;
-        const n = parseInt(v);
-        if(isNaN(n)) return;
-        discTot[ci]++;
-        if(n>=10) discPos[ci]++;
-      });
-    });
-
-    // Aggregate by disc code
-    const discAgg = {};
-    cols.forEach((disc,ci)=>{
-      if(!disc||discTot[ci]===0) return;
-      if(!discAgg[disc]) discAgg[disc]={pos:0,tot:0};
-      discAgg[disc].pos+=discPos[ci];
-      discAgg[disc].tot+=discTot[ci];
-    });
-
-    // Import to D.res
-    let imported=0;
-    const discLog=[];
-    Object.entries(discAgg).forEach(([disc,{pos,tot}])=>{
-      const pct=parseFloat((pos/tot*100).toFixed(2));
-      const k=`sec|${anoLetivoUsar}|${curso.id}|${disc}|${per}`;
-      userOverrides[k]=pct; D.res[k]=pct;
-      if(!(curso.disc||[]).includes(disc)){if(!curso.disc)curso.disc=[];curso.disc.push(disc);}
-      discLog.push(`${disc}:${pct}%`);
-      imported++;
-    });
-
-    log.innerHTML+=`<div style="color:#065f46">✓ Pág.${pi+1} — <strong>${curso.nome}</strong> · ${anoLetivoUsar} · ${per}.º P · ${imported} disciplinas: ${discLog.join(', ')}</div>`;
-    save(); renderSecundario('Prof');
-  });
-}
+// RELATÓRIOS PDF — funções auxiliares e de geração
 // ============================================================
 
 function rptFmt(v){ return v!==null&&v!==undefined ? parseFloat(v).toFixed(1)+'%' : '—'; }
-function rptCls(v, meta){ if(v===null||v===undefined) return ''; return parseFloat(v)>=(meta||0)?'rpt-above':'rpt-below'; }
+function rptCls(v, meta){
+  if(v===null||v===undefined||meta===null||meta===undefined) return '';
+  return parseFloat(v)>=parseFloat(meta) ? 'rpt-above' : 'rpt-below';
+}
 function rptMedia(vals){ const f=vals.filter(x=>x!==null&&x!==undefined); return f.length?f.reduce((a,b)=>a+parseFloat(b),0)/f.length:null; }
 
-function rptHeader(titulo, anoLetivo, anoAnt){
-  const now = new Date().toLocaleDateString('pt-PT');
-  return `<div class="rpt-header">
-    <div><div class="rpt-title">${titulo}</div>
-    <div class="rpt-meta">Ano letivo: <strong>${anoLetivo}</strong>${anoAnt?' &nbsp;|&nbsp; Ano transato: <strong>'+anoAnt+'</strong>':''} &nbsp;|&nbsp; Gerado em: ${now}</div></div>
-    <div style="font-size:8pt;color:#6b7280;text-align:right">Análise de Resultados TEIP</div>
-  </div>`;
-}
+const RPT_LEGEND = `<div style="margin-top:.3cm;display:flex;gap:.5cm;font-size:7pt;align-items:center">
+  <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">■ Acima da meta</span>
+  <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">■ Abaixo da meta</span>
+  <span style="background:#1a3a6b;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">■ Meta TEIP</span>
+  <span style="color:#6b7280">— Sem dados</span>
+</div>`;
 
 function rptCicloTable(ciclo, ano, anoAnt, meta){
-  // Returns ARRAY of {titulo, html} — one per ano escolar
   const anosEsc = CICLO_ANOS[ciclo];
   const pages = [];
   anosEsc.forEach(ae=>{
@@ -3987,7 +3447,7 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
       <th>1.º P</th><th>2.º P</th><th>3.º P</th>
       <th class="rpt-teip"></th>
     </tr></thead><tbody>`;
-    const medAnt=[], medAt=[];
+    const medAnt=[],medAt=[];
     discs.forEach(d=>{
       const vA=[1,2,3].map(p=>anoAnt&&aeAnt?getRes(ciclo,anoAnt,aeAnt,d,p):null);
       const vB=[1,2,3].map(p=>getRes(ciclo,ano,ae,d,p));
@@ -4009,7 +3469,6 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
 }
 
 function rptSecTable(tipo){
-  // Returns ARRAY of {titulo, html} — one per course
   const ano=getAno(), anoAnt=getAnoAnterior(ano);
   const cursos=(D.secCursos[ano]||[]).filter(c=>c.tipo===tipo);
   if(!cursos.length) return [{titulo:'Sem cursos', html:'<p style="font-size:8pt;color:#6b7280">Sem cursos configurados.</p>'}];
@@ -4037,71 +3496,80 @@ function rptSecTable(tipo){
 
 function rptDeptTable(){
   const ano=getAno(), anoAnt=getAnoAnterior(ano);
-  let html='';
-  DEPT_CONFIG.forEach(dept=>{
-    html+=`<div class="rpt-subtitle" style="color:${dept.cor}">${dept.nome}</div>`;
-    if(dept.tipo==='1ciclo'){
-      dept.pares.forEach((par,pi)=>{
-        const [aeAnt,aeAtual,parLabel]=par;
-        const discs=dept.discPorPar[pi];
-        const meta=(D.metas['c1']||{})[ano]??null;
-        html+=`<div style="font-size:8pt;font-weight:700;margin:.2cm 0 .1cm">${parLabel}</div>`;
-        html+=`<table class="rpt-table"><thead><tr>
-          <th>Período</th>`;
-        discs.forEach(d=>html+=`<th colspan="3">${d}</th>`);
-        html+=`<th class="rpt-teip">TEIP</th></tr><tr><th></th>`;
-        discs.forEach(()=>{
-          html+=`<th style="font-size:7pt">${aeAnt}.º-${anoAnt||'—'}</th>`;
-          html+=`<th style="font-size:7pt">${aeAtual}.º-${anoAnt||'—'}</th>`;
-          html+=`<th style="font-size:7pt">${aeAtual}.º-${ano}</th>`;
-        });
-        html+=`<th class="rpt-teip"></th></tr></thead><tbody>`;
-        [1,2,3].forEach((p,pi)=>{
-          html+=`<tr><td>${p}.º P</td>`;
-          discs.forEach(d=>{
-            html+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAnt,d,p):null)}</td>`;
-            html+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAtual,d,p):null)}</td>`;
-            html+=`<td class="${rptCls(getRes('c1',ano,aeAtual,d,p),meta)}">${rptFmt(getRes('c1',ano,aeAtual,d,p))}</td>`;
+  const pages=[];
+  const depts1=[]; const deptsRest=[];
+  DEPT_CONFIG.forEach(d=>{ if(d.tipo==='1ciclo') depts1.push(d); else deptsRest.push(d); });
+
+  function buildHtml(depts){
+    let html='';
+    depts.forEach(dept=>{
+      html+=`<div class="rpt-subtitle" style="color:${dept.cor}">${dept.nome}</div>`;
+      if(dept.tipo==='1ciclo'){
+        dept.pares.forEach((par,pi)=>{
+          const [aeAnt,aeAtual,parLabel]=par;
+          const discs=dept.discPorPar[pi];
+          const meta=(D.metas['c1']||{})[ano]??null;
+          html+=`<div style="font-size:8pt;font-weight:700;margin:.2cm 0 .1cm">${parLabel}</div>`;
+          html+=`<table class="rpt-table"><thead><tr><th>Período</th>`;
+          discs.forEach(d=>html+=`<th colspan="3">${d}</th>`);
+          html+=`<th class="rpt-teip">TEIP</th></tr><tr><th></th>`;
+          discs.forEach(()=>{
+            html+=`<th style="font-size:7pt">${aeAnt}.º-${anoAnt||'—'}</th>`;
+            html+=`<th style="font-size:7pt">${aeAtual}.º-${anoAnt||'—'}</th>`;
+            html+=`<th style="font-size:7pt">${aeAtual}.º-${ano}</th>`;
           });
-          if(pi===0) html+=`<td class="rpt-teip" rowspan="3" style="vertical-align:middle">${meta!==null?meta+'%':'—'}</td>`;
-          html+=`</tr>`;
+          html+=`<th class="rpt-teip"></th></tr></thead><tbody>`;
+          [1,2,3].forEach((p,pi)=>{
+            html+=`<tr><td>${p}.º P</td>`;
+            discs.forEach(d=>{
+              html+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAnt,d,p):null)}</td>`;
+              html+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAtual,d,p):null)}</td>`;
+              html+=`<td class="${rptCls(getRes('c1',ano,aeAtual,d,p),meta)}">${rptFmt(getRes('c1',ano,aeAtual,d,p))}</td>`;
+            });
+            if(pi===0) html+=`<td class="rpt-teip" rowspan="3" style="vertical-align:middle">${meta!==null?meta+'%':'—'}</td>`;
+            html+=`</tr>`;
+          });
+          html+=`</tbody></table>`;
         });
-        html+=`</tbody></table>`;
-      });
-    } else {
-      dept.disciplinas.forEach(discObj=>{
-        const{nome:dNome,disc,anos:discAnos}=discObj;
-        html+=`<div style="font-size:8pt;font-weight:600;margin:.15cm 0 .05cm">${dNome}</div>`;
-        html+=`<table class="rpt-table"><thead><tr>
-          <th>Período</th>`;
-        discAnos.forEach(ae=>html+=`<th colspan="3">${ae}.º Ano</th>`);
-        html+=`</tr><tr><th></th>`;
-        discAnos.forEach(ae=>{
-          const ciclo=ae<=4?'c1':ae<=6?'c2':'c3';
-          const m=(D.metas[ciclo]||{})[ano]??null;
-          html+=`<th style="font-size:7pt">${anoAnt||'—'}</th>`;
-          html+=`<th style="font-size:7pt">${ano}</th>`;
-          html+=`<th class="rpt-teip" style="font-size:7pt">${m!==null?m+'%':'—'}</th>`;
-        });
-        html+=`</tr></thead><tbody>`;
-        [1,2,3].forEach((p,pi)=>{
-          html+=`<tr><td>${p}.º P</td>`;
+      } else {
+        dept.disciplinas.forEach(discObj=>{
+          const{nome:dNome,disc,anos:discAnos}=discObj;
+          html+=`<div style="font-size:8pt;font-weight:600;margin:.15cm 0 .05cm">${dNome}</div>`;
+          html+=`<table class="rpt-table"><thead><tr><th>Período</th>`;
+          discAnos.forEach(ae=>html+=`<th colspan="3">${ae}.º Ano</th>`);
+          html+=`</tr><tr><th></th>`;
           discAnos.forEach(ae=>{
             const ciclo=ae<=4?'c1':ae<=6?'c2':'c3';
-            const meta=(D.metas[ciclo]||{})[ano]??null;
-            const vA=anoAnt?getRes(ciclo,anoAnt,ae,disc,p):null;
-            const vB=getRes(ciclo,ano,ae,disc,p);
-            html+=`<td>${rptFmt(vA)}</td>`;
-            html+=`<td class="${rptCls(vB,meta)}">${rptFmt(vB)}</td>`;
-            if(pi===0) html+=`<td class="rpt-teip" rowspan="3" style="vertical-align:middle">${meta!==null?meta+'%':'—'}</td>`;
+            const m=(D.metas[ciclo]||{})[ano]??null;
+            html+=`<th style="font-size:7pt">${anoAnt||'—'}</th>`;
+            html+=`<th style="font-size:7pt">${ano}</th>`;
+            html+=`<th class="rpt-teip" style="font-size:7pt">${m!==null?m+'%':'—'}</th>`;
           });
-          html+=`</tr>`;
+          html+=`</tr></thead><tbody>`;
+          [1,2,3].forEach((p,pi)=>{
+            html+=`<tr><td>${p}.º P</td>`;
+            discAnos.forEach(ae=>{
+              const ciclo=ae<=4?'c1':ae<=6?'c2':'c3';
+              const meta=(D.metas[ciclo]||{})[ano]??null;
+              const vA=anoAnt?getRes(ciclo,anoAnt,ae,disc,p):null;
+              const vB=getRes(ciclo,ano,ae,disc,p);
+              html+=`<td>${rptFmt(vA)}</td>`;
+              html+=`<td class="${rptCls(vB,meta)}">${rptFmt(vB)}</td>`;
+              if(pi===0) html+=`<td class="rpt-teip" rowspan="3" style="vertical-align:middle">${meta!==null?meta+'%':'—'}</td>`;
+            });
+            html+=`</tr>`;
+          });
+          html+=`</tbody></table>`;
         });
-        html+=`</tbody></table>`;
-      });
-    }
-  });
-  return html;
+      }
+    });
+    return html;
+  }
+
+  if(depts1.length)    pages.push({titulo:'Departamentos — 1.º Ciclo',       html:buildHtml(depts1)});
+  if(deptsRest.length) pages.push({titulo:'Departamentos — 2.º e 3.º Ciclo', html:buildHtml(deptsRest)});
+  if(!pages.length)    pages.push({titulo:'Departamentos', html:'<p>Sem dados.</p>'});
+  return pages;
 }
 
 function rptTaxaTable(){
@@ -4138,6 +3606,7 @@ function gerarRelatorio(tipo){
     pages+=`<div class="rpt-page">
       ${rptHeader(titulo, ano, anoAnt)}
       ${conteudo}
+      ${RPT_LEGEND}
     </div>`;
   };
 
@@ -4166,7 +3635,7 @@ function gerarRelatorio(tipo){
     addPages(rptSecTable('Prof'));
   }
   if(tipo==='dept'||tipo==='completo'){
-    addPage('Análise de Resultados — Departamentos', rptDeptTable());
+    addPages(rptDeptTable());
   }
   if(tipo==='taxa'||tipo==='completo'){
     addPage('Taxa de Alunos com Classificação Positiva em Todas as Disciplinas', rptTaxaTable());
@@ -4178,6 +3647,155 @@ function gerarRelatorio(tipo){
     window.print();
     setTimeout(()=>{ wrapper.style.display='none'; wrapper.innerHTML=''; }, 500);
   }, 200);
+}
+
+// ============================================================
+// BACKUP COMPLETO + CREDENCIAIS — AES-256-GCM
+// ============================================================
+
+async function credDeriveKey(senha, salt){
+  const enc = new TextEncoder();
+  const km = await crypto.subtle.importKey('raw', enc.encode(senha), {name:'PBKDF2'}, false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    {name:'PBKDF2', salt, iterations:100000, hash:'SHA-256'},
+    km, {name:'AES-GCM', length:256}, false, ['encrypt','decrypt']
+  );
+}
+
+async function backupExportar(){
+  const senha = document.getElementById('backup-senha').value;
+  const msg   = document.getElementById('backup-msg');
+  if(senha.length < 6){ msg.style.color='#dc2626'; msg.textContent='A senha deve ter pelo menos 6 caracteres.'; return; }
+  msg.style.color='#6b7280'; msg.textContent='A preparar backup...';
+  try {
+    const tok = Store.get('gh_token');
+    const rep = Store.get('gh_repo');
+    const payload = {
+      _teip_backup: true, _version: 1,
+      _date: new Date().toISOString(),
+      _entries: Object.keys(D.res).length,
+      userOverrides:     Object.assign({}, D.res),
+      userTaxaOverrides: Object.assign({}, D.taxaRes),
+      cfg: { anoAtual:D.anoAtual, anos:D.anos, disc:D.disc, secCursos:D.secCursos, turmasTaxa:D.turmasTaxa, metas:D.metas },
+      gh: { tok: tok||'', repo: rep||'' }
+    };
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const iv   = crypto.getRandomValues(new Uint8Array(12));
+    const key  = await credDeriveKey(senha, salt);
+    const enc  = new TextEncoder();
+    const encrypted = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, enc.encode(JSON.stringify(payload)));
+    const magic = new Uint8Array([0x54,0x45,0x49,0x50]);
+    const packed = new Uint8Array(4+16+12+encrypted.byteLength);
+    packed.set(magic,0); packed.set(salt,4); packed.set(iv,20); packed.set(new Uint8Array(encrypted),32);
+    const b64 = btoa(String.fromCharCode(...packed));
+    const dateStr = new Date().toISOString().slice(0,10);
+    const blob = new Blob([JSON.stringify({_teip_backup:1,v:1,d:dateStr,data:b64})], {type:'application/json'});
+    const a = document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download=`teip-backup-${dateStr}.teip-backup`; a.click();
+    msg.style.color='#065f46';
+    msg.textContent=`✓ Backup exportado com ${Object.keys(payload.userOverrides).length} entradas. Guarda o ficheiro e a senha em local seguro.`;
+  } catch(e){ msg.style.color='#dc2626'; msg.textContent='✗ Erro: '+e.message; }
+}
+
+async function backupImportar(event){
+  const file = event.target.files[0];
+  const msg  = document.getElementById('backup-msg');
+  event.target.value='';
+  if(!file) return;
+  const senha = document.getElementById('backup-senha').value;
+  if(senha.length < 6){ msg.style.color='#dc2626'; msg.textContent='Insere a senha antes de restaurar.'; return; }
+  msg.style.color='#6b7280'; msg.textContent='A desencriptar backup...';
+  try {
+    const text = await file.text();
+    const obj  = JSON.parse(text);
+    if(!obj._teip_backup || !obj.data){ msg.style.color='#dc2626'; msg.textContent='✗ Ficheiro inválido.'; return; }
+    const packed = Uint8Array.from(atob(obj.data), c=>c.charCodeAt(0));
+    if(packed[0]!==0x54||packed[1]!==0x45||packed[2]!==0x49||packed[3]!==0x50){
+      msg.style.color='#dc2626'; msg.textContent='✗ Ficheiro de backup inválido.'; return;
+    }
+    const salt=packed.slice(4,20), iv=packed.slice(20,32), ct=packed.slice(32);
+    const key = await credDeriveKey(senha, salt);
+    const decrypted = await crypto.subtle.decrypt({name:'AES-GCM', iv}, key, ct);
+    const payload = JSON.parse(new TextDecoder().decode(decrypted));
+    if(!payload._teip_backup){ msg.style.color='#dc2626'; msg.textContent='✗ Conteúdo inválido.'; return; }
+    // Restore credentials FIRST
+    if(payload.gh){
+      if(payload.gh.tok){
+        Store.set('gh_token', payload.gh.tok);
+        const ti=document.getElementById('gh-token'); if(ti) ti.value=payload.gh.tok;
+      }
+      if(payload.gh.repo){
+        Store.set('gh_repo', payload.gh.repo);
+        const ri=document.getElementById('gh-repo'); if(ri) ri.value=payload.gh.repo;
+        const ind=document.getElementById('gh-sync-indicator'); if(ind) ind.style.display='';
+      }
+    }
+    // Restore all data
+    applyLoadedData(payload);
+    const entries = Object.keys(payload.userOverrides||{}).length;
+    msg.style.color='#065f46';
+    msg.textContent=`✓ Backup restaurado! ${entries} entradas. Credenciais GitHub restauradas. Data: ${payload._date?.slice(0,10)||'?'}`;
+    // Auto-sync to GitHub
+    if(GH.configured()){
+      setTimeout(async()=>{
+        const ok = await ghSave(buildSavePayload());
+        if(ok) ghShowStatus(`✓ Sincronizado com GitHub após restauro`, true);
+      }, 1500);
+    }
+  } catch(e){
+    msg.style.color='#dc2626';
+    msg.textContent='✗ Senha incorrecta ou ficheiro corrompido.';
+  }
+}
+
+async function credExportar(){
+  const senha = document.getElementById('cred-senha').value;
+  const token = document.getElementById('gh-token').value.trim();
+  const repo  = document.getElementById('gh-repo').value.trim();
+  const msg   = document.getElementById('cred-msg');
+  if(senha.length < 6){ msg.style.color='#dc2626'; msg.textContent='A senha deve ter pelo menos 6 caracteres.'; return; }
+  if(!token || !repo){ msg.style.color='#dc2626'; msg.textContent='Preenche primeiro o token e o repositório.'; return; }
+  try {
+    const salt=crypto.getRandomValues(new Uint8Array(16)), iv=crypto.getRandomValues(new Uint8Array(12));
+    const key=await credDeriveKey(senha, salt);
+    const enc=new TextEncoder();
+    const payload=JSON.stringify({token,repo,_v:1,_d:new Date().toISOString()});
+    const encrypted=await crypto.subtle.encrypt({name:'AES-GCM',iv},key,enc.encode(payload));
+    const packed=new Uint8Array(salt.length+iv.length+encrypted.byteLength);
+    packed.set(salt,0); packed.set(iv,16); packed.set(new Uint8Array(encrypted),28);
+    const b64=btoa(String.fromCharCode(...packed));
+    const blob=new Blob([JSON.stringify({_teip_cred:1,data:b64})],{type:'application/json'});
+    const a=document.createElement('a'); a.href=URL.createObjectURL(blob);
+    a.download='teip-credenciais.teip-cred'; a.click();
+    msg.style.color='#065f46'; msg.textContent='✓ Credenciais exportadas.';
+  } catch(e){ msg.style.color='#dc2626'; msg.textContent='Erro: '+e.message; }
+}
+
+async function credImportar(event){
+  const file=event.target.files[0];
+  const msg=document.getElementById('cred-msg');
+  event.target.value='';
+  if(!file) return;
+  const senha=document.getElementById('cred-senha').value;
+  if(senha.length<6){ msg.style.color='#dc2626'; msg.textContent='Insere a senha antes de importar.'; return; }
+  try {
+    const text=await file.text();
+    const obj=JSON.parse(text);
+    if(!obj._teip_cred||!obj.data){ msg.style.color='#dc2626'; msg.textContent='Ficheiro inválido.'; return; }
+    const packed=Uint8Array.from(atob(obj.data),c=>c.charCodeAt(0));
+    const salt=packed.slice(0,16),iv=packed.slice(16,28),ct=packed.slice(28);
+    const key=await credDeriveKey(senha,salt);
+    const dec=new TextDecoder();
+    const decrypted=await crypto.subtle.decrypt({name:'AES-GCM',iv},key,ct);
+    const payload=JSON.parse(dec.decode(decrypted));
+    if(payload.token&&payload.repo){
+      Store.set('gh_token',payload.token); Store.set('gh_repo',payload.repo);
+      document.getElementById('gh-token').value=payload.token;
+      document.getElementById('gh-repo').value=payload.repo;
+      msg.style.color='#065f46';
+      msg.textContent=`✓ Credenciais restauradas (${payload.repo}). Clica "Ligar e sincronizar".`;
+    }
+  } catch(e){ msg.style.color='#dc2626'; msg.textContent='✗ Senha incorrecta ou ficheiro corrompido.'; }
 }
 
 // ============================================================
@@ -4218,7 +3836,7 @@ render();
     // Credentials in Store — load immediately
     tryLoad(t, r);
   } else {
-    // Try recovering from teip2 backup
+    // Try recovering from teip2 backup in localStorage
     try {
       const prev = Store.get('teip2');
       if(prev){
@@ -4228,12 +3846,14 @@ render();
         if(bRepo){ Store.set('gh_repo', bRepo); if(ri) ri.value=bRepo; }
         if(bTok){  Store.set('gh_token', bTok);  if(ti) ti.value=bTok; }
         if(bRepo && bTok){
-          ghShowStatus('⏳ A restaurar ligação...', true);
+          ghShowStatus('⏳ A restaurar credenciais (backup local)...', true);
           tryLoad(bTok, bRepo);
           return;
         }
       }
     } catch(e){}
+    // No credentials found anywhere
+    ghShowStatus('⚠ Sem credenciais. Usa ⚙ Configurações para ligar ao GitHub ou restaura um backup.', false);
 
     // No credentials anywhere — show first-time setup if on GitHub Pages
     const isOnline = location.protocol === 'https:' || location.hostname !== 'localhost';
@@ -4269,6 +3889,16 @@ if('serviceWorker' in navigator){
       .catch(e => console.log('SW error:', e));
   });
 }
+
+// Set header height CSS variable for sticky nav
+(function(){
+  function setHeaderHeight(){
+    const h = document.querySelector('header');
+    if(h) document.documentElement.style.setProperty('--header-h', h.offsetHeight+'px');
+  }
+  setHeaderHeight();
+  window.addEventListener('resize', setHeaderHeight);
+})();
 </script>
 
 </body>
