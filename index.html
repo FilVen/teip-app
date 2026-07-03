@@ -140,16 +140,20 @@ td.empty{color:#9ca3af;font-size:.7rem}
   .rpt-table td.left { text-align: left; font-weight: 600; }
   .rpt-table tr:nth-child(even) td { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
-  /* ✓ ACIMA DA META — fundo verde + texto branco + ✓ */
-  .rpt-above {
+  /* ✓ ACIMA DA META — verde forte, sobrescreve nth-child even */
+  .rpt-above,
+  tr:nth-child(even) td.rpt-above,
+  tr:nth-child(odd) td.rpt-above {
     background: #16a34a !important;
     color: #fff !important;
     font-weight: 700;
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  /* ✗ ABAIXO DA META — fundo vermelho + texto branco */
-  .rpt-below {
+  /* ✗ ABAIXO DA META — vermelho forte, sobrescreve nth-child even */
+  .rpt-below,
+  tr:nth-child(even) td.rpt-below,
+  tr:nth-child(odd) td.rpt-below {
     background: #dc2626 !important;
     color: #fff !important;
     font-weight: 700;
@@ -3616,12 +3620,15 @@ function rptTaxaTable(){
     const meta=getMeta(ciclo);
     const turmas=getTurmas(ano,anoEsc);
     if(!turmas.length) return;
+    // Only include turmas that have at least one value
+    const turmasComDados = turmas.filter(t=>[1,2,3].some(p=>getTaxaRes(ano,anoEsc,t,p)!==null));
+    if(!turmasComDados.length) return;
     html+=`<div class="rpt-subtitle">${label} — Meta TEIP: ${meta!==null?meta+'%':'—'}</div>`;
     html+=`<table class="rpt-table"><thead><tr>
       <th class="left">Turma</th>
       <th>1.º Período</th><th>2.º Período</th><th>3.º Período</th>
     </tr></thead><tbody>`;
-    turmas.forEach(t=>{
+    turmasComDados.forEach(t=>{
       const v=[1,2,3].map(p=>getTaxaRes(ano,anoEsc,t,p));
       html+=`<tr><td class="left">${t}</td>`;
       v.forEach(vi=>html+=`<td class="${rptCls(vi,meta)}">${rptFmt(vi)}</td>`);
