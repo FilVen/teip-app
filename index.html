@@ -1488,6 +1488,7 @@ function renderCiclo(ciclo){
       <table><thead><tr>
         <th class="left">Disciplina</th>
         <th>1.º P</th><th>2.º P</th><th>3.º P</th>
+        <th class="teip-cell">TEIP</th>
       </tr></thead><tbody>`;
 
     // per-period media accumulators for left
@@ -1499,14 +1500,15 @@ function renderCiclo(ciclo){
         if(v!==null) medP[i].vals.push(parseFloat(v));
         html+=`<td class="${cls(v,meta)}">${fmt(v)}</td>`;
       });
+      html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td>`;
       html+=`</tr>`;
     });
 
     const medsAnt=medP.map(m=>calcMedia(m.vals));
     html+=`<tr class="avg-row"><td class="disc">Média período</td>`;
     medsAnt.forEach(m=>{ html+=`<td class="${cls(m,meta)}">${m!==null?m.toFixed(2)+'%':'—'}</td>`; });
+    html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td>`;
     html+=`</tr>`;
-    html+=`<tr class="teip-row"><td class="disc">Meta TEIP</td><td colspan="3" class="teip-cell">${meta!==null?meta+'%':'Não definida'}</td></tr>`;
     html+=`</tbody></table></div>`;
 
     // === RIGHT: ano atual ===
@@ -1518,6 +1520,7 @@ function renderCiclo(ciclo){
       <table><thead><tr>
         <th class="left">Disciplina</th>
         <th>1.º P</th><th>2.º P</th><th>3.º P</th>
+        <th class="teip-cell">TEIP</th>
         <th style="width:36px"></th>
       </tr></thead><tbody>`;
 
@@ -1529,6 +1532,7 @@ function renderCiclo(ciclo){
         if(v!==null) medPA[i].vals.push(parseFloat(v));
         html+=`<td class="${cls(v,meta)}">${fmt(v)}</td>`;
       });
+      html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td>`;
       html+=`<td><button class="btn btn-sm" style="padding:1px 5px;font-size:.68rem" onclick="editRes('${ciclo}',${ae},'${d}','${anoAtual}')">✏</button></td>`;
       html+=`</tr>`;
     });
@@ -1536,8 +1540,8 @@ function renderCiclo(ciclo){
     const medsAtual=medPA.map(m=>calcMedia(m.vals));
     html+=`<tr class="avg-row"><td class="disc">Média período</td>`;
     medsAtual.forEach(m=>{ html+=`<td class="${cls(m,meta)}">${m!==null?m.toFixed(2)+'%':'—'}</td>`; });
+    html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td>`;
     html+=`<td></td></tr>`;
-    html+=`<tr class="teip-row"><td class="disc">Meta TEIP</td><td colspan="3" class="teip-cell">${meta!==null?meta+'%':'—'}</td><td></td></tr>`;
 
     html+=`</tbody></table>
       <div style="margin-top:.35rem">
@@ -3301,12 +3305,12 @@ function renderDept(){
         html+=`<div style="font-size:.78rem;font-weight:700;color:${dept.cor};margin-bottom:.4rem">${parLabel}</div>`;
         html+=`<table style="margin-bottom:.5rem"><thead>`;
 
-        // Row 1: discipline name headers (each spans 3 cols) + TEIP (rowspan 2)
+        // Row 1: discipline name headers (each spans 3 cols) + TEIP per discipline
         html+=`<tr><th class="left" rowspan="2" style="min-width:90px">Período</th>`;
         discs.forEach(d=>{
-          html+=`<th colspan="3" style="background:#e8edf5">${d}</th>`;
+          html+=`<th colspan="3" style="background:#e8edf5">${d}</th><th class="teip-cell" rowspan="2" style="vertical-align:middle">TEIP</th>`;
         });
-        html+=`<th class="teip-cell" rowspan="2" style="vertical-align:middle">TEIP</th></tr>`;
+        html+=`</tr>`;
 
         // Row 2: individual column labels only
         html+=`<tr>`;
@@ -3317,7 +3321,7 @@ function renderDept(){
         });
         html+=`</tr></thead><tbody>`;
 
-        [1,2,3].forEach((p,pi)=>{
+        [1,2,3].forEach((p)=>{
           html+=`<tr><td class="period-label" style="white-space:nowrap">${p}.º Período</td>`;
           discs.forEach(d=>{
             const vAnt1=anoAnt?getRes('c1',anoAnt,aeAnt,d,p):null;
@@ -3326,9 +3330,8 @@ function renderDept(){
             html+=`<td class="${cls(vAnt1,meta)}">${fmt(vAnt1)}</td>`;
             html+=`<td class="${cls(vAnt2,meta)}">${fmt(vAnt2)}</td>`;
             html+=`<td class="${cls(vAtual,meta)}">${fmt(vAtual)}</td>`;
+            html+=`<td class="teip-cell" style="font-weight:700">${meta!==null?meta+'%':'—'}</td>`;
           });
-          // TEIP: rowspan=3 on first row, skip on others
-          if(pi===0) html+=`<td class="teip-cell" rowspan="3" style="vertical-align:middle;font-weight:700">${meta!==null?meta+'%':'—'}</td>`;
           html+=`</tr>`;
         });
         html+=`</tbody></table>`;
@@ -3360,7 +3363,7 @@ function renderDept(){
         });
         html+=`</tr></thead><tbody>`;
 
-        [1,2,3].forEach((p,pi)=>{
+        [1,2,3].forEach((p)=>{
           html+=`<tr><td class="period-label" style="white-space:nowrap">${p}.º Período</td>`;
           discAnos.forEach(ae=>{
             const ciclo=getCiclo(ae);
@@ -3369,7 +3372,7 @@ function renderDept(){
             const vAtual=getRes(ciclo,ano,ae,disc,p);
             html+=`<td class="${cls(vAnt,meta)}">${fmt(vAnt)}</td>`;
             html+=`<td class="${cls(vAtual,meta)}">${fmt(vAtual)}</td>`;
-            if(pi===0) html+=`<td class="teip-cell" rowspan="3" style="vertical-align:middle;font-weight:700">${meta!==null?meta+'%':'—'}</td>`;
+            html+=`<td class="teip-cell" style="font-weight:700">${meta!==null?meta+'%':'—'}</td>`;
           });
           html+=`</tr>`;
         });
@@ -3413,6 +3416,63 @@ function renderTaxa(){
   const el=document.getElementById('body-taxa');
   if(!el) return;
   const ano=getAno();
+  let html='';
+  TAXA_TEIP_GRUPOS.forEach(grupo=>{
+    const{label,anoEsc,ciclo,nota}=grupo;
+    const meta=getMeta(ciclo);
+    const turmas=getTurmas(ano,anoEsc);
+    html+=`<div class="ciclo-section">
+      <div class="ciclo-title"><span>${label}</span><span style="font-size:.72rem;font-weight:600">Meta TEIP: ${meta!==null?meta+'%':'—'}</span></div>
+      <div class="ciclo-body">`;
+    if(!turmas.length){
+      html+=`<p class="no-data">Sem turmas configuradas para este grupo. Usa "⚙ Gerir turmas" para adicionar.</p>`;
+    } else {
+      html+=`<table><thead><tr>
+        <th class="left">Turma</th>
+        <th>1.º P</th><th>2.º P</th><th>3.º P</th>
+        <th class="teip-cell">TEIP</th>
+        <th style="width:36px"></th>
+      </tr></thead><tbody>`;
+      const medP=[{vals:[]},{vals:[]},{vals:[]}];
+      turmas.forEach(t=>{
+        html+=`<tr><td class="disc">${t}</td>`;
+        [1,2,3].forEach((p,i)=>{
+          const v=getTaxaRes(ano,anoEsc,t,p);
+          if(v!==null) medP[i].vals.push(parseFloat(v));
+          html+=`<td class="${cls(v,meta)}">${fmt(v)}</td>`;
+        });
+        html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td>`;
+        html+=`<td><button class="btn btn-sm" style="padding:1px 5px;font-size:.68rem" onclick="editTaxa('${ano}',${anoEsc},'${t}')">✏</button></td>`;
+        html+=`</tr>`;
+      });
+      const meds=medP.map(m=>calcMedia(m.vals));
+      html+=`<tr class="avg-row"><td class="disc">Média período</td>`;
+      meds.forEach(m=>{ html+=`<td class="${cls(m,meta)}">${m!==null?m.toFixed(2)+'%':'—'}</td>`; });
+      html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td><td></td></tr>`;
+      html+=`</tbody></table>`;
+      if(nota) html+=`<p style="font-size:.7rem;color:#6b7280;font-style:italic;margin-top:.4rem">* ${nota}</p>`;
+    }
+    html+=`</div></div>`;
+  });
+  el.innerHTML=html||'<p class="no-data">Sem dados. Usa "⚙ Gerir turmas" ou "📊 Importar Excel" para começar.</p>';
+}
+
+function editTaxa(ano, anoEsc, turma){
+  const cur=[1,2,3].map(p=>getTaxaRes(ano,anoEsc,turma,p));
+  const input=prompt(`Taxa de positivas (%) — turma ${turma}\nInsere os 3 períodos separados por vírgula (deixa em branco para remover):`, cur.map(v=>v!==null?v:'').join(','));
+  if(input===null) return;
+  const parts=input.split(',').map(s=>s.trim());
+  [1,2,3].forEach((p,i)=>{
+    const s=parts[i];
+    const k=`${ano}|${anoEsc}|${turma}|${p}`;
+    if(!s){
+      delete D.taxaRes[k]; delete userTaxaOverrides[k];
+    } else {
+      const n=parseFloat(s.replace(',','.'));
+      if(!isNaN(n)){ userTaxaOverrides[k]=n; D.taxaRes[k]=n; }
+    }
+  });
+  save(); renderTaxa();
 }
 
 // ============================================================
@@ -3425,6 +3485,11 @@ function rptCls(v, meta){
   return parseFloat(v)>=parseFloat(meta) ? 'rpt-above' : 'rpt-below';
 }
 function rptMedia(vals){ const f=vals.filter(x=>x!==null&&x!==undefined); return f.length?f.reduce((a,b)=>a+parseFloat(b),0)/f.length:null; }
+function forceTeipUniform(html, metaTxt){
+  // Garante que TODAS as células "Meta TEIP" dentro deste bloco de tabela
+  // ficam com o mesmo valor e o mesmo estilo azul, sem exceção.
+  return html.replace(/<td class="rpt-teip"[^>]*>[\s\S]*?<\/td>/g, `<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td>`);
+}
 
 function rptHeader(titulo, anoLetivo, anoAnt){
   const now = new Date().toLocaleDateString('pt-PT');
@@ -3474,6 +3539,7 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
     const discs = [...discsBase, ...extraDiscs];
     if(!discs.length) return;
 
+    const metaTxt = (meta!==null && meta!==undefined && meta!=='') ? (meta+'%') : '—';
     let html = `<table class="rpt-table"><thead><tr>
       <th class="left" style="width:140px">Disciplina</th>
       <th colspan="3">${anoAnt||'—'} — ${aeAnt?aeAnt+'.º Ano':'—'}</th>
@@ -3483,7 +3549,7 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
       <th class="left"></th>
       <th>1.º P</th><th>2.º P</th><th>3.º P</th>
       <th>1.º P</th><th>2.º P</th><th>3.º P</th>
-      <th class="rpt-teip"></th>
+      <th class="rpt-teip">${metaTxt}</th>
     </tr></thead><tbody>`;
     const medAnt=[],medAt=[];
     discs.forEach(d=>{
@@ -3495,14 +3561,15 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
       html+=`<tr><td class="left">${d}</td>`;
       vA.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
       vB.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
-      html+=`<td class="rpt-teip">${meta!==null?meta+'%':'—'}</td></tr>`;
+      html+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
     });
     const mA=rptMedia(medAnt), mB=rptMedia(medAt);
     html+=`<tr class="rpt-media"><td class="left">Média</td>
       <td colspan="3">${rptFmt(mA)}</td>
       <td colspan="3">${rptFmt(mB)}</td>
-      <td class="rpt-teip">${meta!==null?meta+'%':'—'}</td></tr>`;
+      <td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
     html+=`</tbody></table>`;
+    html = forceTeipUniform(html, metaTxt);
     pages.push({titulo:`${CICLO_NOME[ciclo]} — ${ae}.º Ano`, html});
   });
   return pages;
@@ -3549,27 +3616,30 @@ function rptDeptTable(){
           const [aeAnt,aeAtual,parLabel]=par;
           const discs=dept.discPorPar[pi];
           const meta=(D.metas['c1']||{})[ano]??null;
+          const metaTxt=meta!==null?meta+'%':'—';
           html+=`<div style="font-size:8pt;font-weight:700;margin:.2cm 0 .1cm">${parLabel}</div>`;
-          html+=`<table class="rpt-table"><thead><tr><th>Período</th>`;
-          discs.forEach(d=>html+=`<th colspan="3">${d}</th>`);
-          html+=`<th class="rpt-teip">TEIP</th></tr><tr><th></th>`;
+          let tableHtml=`<table class="rpt-table"><thead><tr><th>Período</th>`;
+          discs.forEach(d=>tableHtml+=`<th colspan="3">${d}</th><th class="rpt-teip">TEIP</th>`);
+          tableHtml+=`</tr><tr><th></th>`;
           discs.forEach(()=>{
-            html+=`<th style="font-size:7pt">${aeAnt}.º-${anoAnt||'—'}</th>`;
-            html+=`<th style="font-size:7pt">${aeAtual}.º-${anoAnt||'—'}</th>`;
-            html+=`<th style="font-size:7pt">${aeAtual}.º-${ano}</th>`;
+            tableHtml+=`<th style="font-size:7pt">${aeAnt}.º-${anoAnt||'—'}</th>`;
+            tableHtml+=`<th style="font-size:7pt">${aeAtual}.º-${anoAnt||'—'}</th>`;
+            tableHtml+=`<th style="font-size:7pt">${aeAtual}.º-${ano}</th>`;
+            tableHtml+=`<th class="rpt-teip"></th>`;
           });
-          html+=`<th class="rpt-teip"></th></tr></thead><tbody>`;
-          [1,2,3].forEach((p,pi)=>{
-            html+=`<tr><td>${p}.º P</td>`;
+          tableHtml+=`</tr></thead><tbody>`;
+          [1,2,3].forEach((p)=>{
+            tableHtml+=`<tr><td>${p}.º P</td>`;
             discs.forEach(d=>{
-              html+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAnt,d,p):null)}</td>`;
-              html+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAtual,d,p):null)}</td>`;
-              html+=`<td class="${rptCls(getRes('c1',ano,aeAtual,d,p),meta)}">${rptFmt(getRes('c1',ano,aeAtual,d,p))}</td>`;
+              tableHtml+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAnt,d,p):null)}</td>`;
+              tableHtml+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAtual,d,p):null)}</td>`;
+              tableHtml+=`<td class="${rptCls(getRes('c1',ano,aeAtual,d,p),meta)}">${rptFmt(getRes('c1',ano,aeAtual,d,p))}</td>`;
+              tableHtml+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td>`;
             });
-            if(pi===0) html+=`<td class="rpt-teip" rowspan="3" style="vertical-align:middle">${meta!==null?meta+'%':'—'}</td>`;
-            html+=`</tr>`;
+            tableHtml+=`</tr>`;
           });
-          html+=`</tbody></table>`;
+          tableHtml+=`</tbody></table>`;
+          html += forceTeipUniform(tableHtml, metaTxt);
         });
       } else {
         dept.disciplinas.forEach(discObj=>{
@@ -3586,7 +3656,7 @@ function rptDeptTable(){
             html+=`<th class="rpt-teip" style="font-size:7pt">${m!==null?m+'%':'—'}</th>`;
           });
           html+=`</tr></thead><tbody>`;
-          [1,2,3].forEach((p,pi)=>{
+          [1,2,3].forEach((p)=>{
             html+=`<tr><td>${p}.º P</td>`;
             discAnos.forEach(ae=>{
               const ciclo=ae<=4?'c1':ae<=6?'c2':'c3';
@@ -3595,7 +3665,7 @@ function rptDeptTable(){
               const vB=getRes(ciclo,ano,ae,disc,p);
               html+=`<td>${rptFmt(vA)}</td>`;
               html+=`<td class="${rptCls(vB,meta)}">${rptFmt(vB)}</td>`;
-              if(pi===0) html+=`<td class="rpt-teip" rowspan="3" style="vertical-align:middle">${meta!==null?meta+'%':'—'}</td>`;
+              html+=`<td class="rpt-teip" data-meta="${meta!==null?meta+'%':'—'}">${meta!==null?meta+'%':'—'}</td>`;
             });
             html+=`</tr>`;
           });
@@ -3685,6 +3755,14 @@ function gerarRelatorio(tipo){
   }
 
   wrapper.innerHTML=pages;
+
+  // Reforço: garante que TODAS as células da coluna Meta TEIP (em qualquer
+  // tabela de relatório) ficam preenchidas com o valor correto, mesmo que
+  // por algum motivo a célula tivesse ficado vazia. Cada célula guarda o
+  // valor pretendido em data-meta; este passo força esse valor no ecrã.
+  wrapper.querySelectorAll('td.rpt-teip[data-meta]').forEach(td=>{
+    td.textContent = td.getAttribute('data-meta');
+  });
   wrapper.style.display='block';
   setTimeout(()=>{
     window.print();
