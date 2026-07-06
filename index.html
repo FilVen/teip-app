@@ -161,9 +161,26 @@ td.empty{color:#9ca3af;font-size:.7rem}
     print-color-adjust: exact;
   }
 
-  .rpt-teip { background: #1a3a6b !important; color: #fff !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .rpt-media { background: #1e3a5f !important; color: #fff !important; font-weight: 700; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
-  .rpt-media td { background: #1e3a5f !important; color: #fff !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-teip,
+  tr:nth-child(even) td.rpt-teip,
+  tr:nth-child(odd) td.rpt-teip {
+    background: #1a3a6b !important;
+    color: #fff !important;
+    font-weight: 700;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .rpt-media,
+  tr:nth-child(even) td.rpt-media,
+  tr:nth-child(odd) td.rpt-media,
+  tr:nth-child(even) .rpt-media td,
+  tr:nth-child(odd) .rpt-media td {
+    background: #1e3a5f !important;
+    color: #fff !important;
+    font-weight: 700;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
   .rpt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid #1a3a6b; padding-bottom: .2cm; margin-bottom: .35cm; }
   .rpt-meta { font-size: 7.5pt; color: #6b7280; margin-top: .1cm; }
   .rpt-nota { font-size: 7.5pt; color: #6b7280; font-style: italic; margin-top: .1cm; }
@@ -3607,77 +3624,94 @@ function rptDeptTable(){
   const depts1=[]; const deptsRest=[];
   DEPT_CONFIG.forEach(d=>{ if(d.tipo==='1ciclo') depts1.push(d); else deptsRest.push(d); });
 
-  function buildHtml(depts){
+  function chunkArr(arr, size){
+    const out=[];
+    for(let i=0;i<arr.length;i+=size) out.push(arr.slice(i,i+size));
+    return out;
+  }
+
+  // 1.º Ciclo: cada "par" de anos é dividido em várias páginas (máx. 4
+  // disciplinas por página) para a tabela nunca ficar demasiado larga e
+  // conteúdo cortado ao imprimir.
+  const MAX_DISC_POR_PAGINA = 4;
+  depts1.forEach(dept=>{
+    dept.pares.forEach((par,pi)=>{
+      const [aeAnt,aeAtual,parLabel]=par;
+      const discsAll=dept.discPorPar[pi];
+      const meta=(D.metas['c1']||{})[ano]??null;
+      const metaTxt=meta!==null?meta+'%':'—';
+      const chunks=chunkArr(discsAll, MAX_DISC_POR_PAGINA);
+      chunks.forEach((discs,ci)=>{
+        let tableHtml=`<div class="rpt-subtitle" style="color:${dept.cor}">${dept.nome}</div>`;
+        tableHtml+=`<div style="font-size:8pt;font-weight:700;margin:.2cm 0 .1cm">${parLabel}${chunks.length>1?` (${ci+1}/${chunks.length})`:''}</div>`;
+        tableHtml+=`<table class="rpt-table"><thead><tr><th>Período</th>`;
+        discs.forEach(d=>tableHtml+=`<th colspan="3">${d}</th><th class="rpt-teip">TEIP</th>`);
+        tableHtml+=`</tr><tr><th></th>`;
+        discs.forEach(()=>{
+          tableHtml+=`<th style="font-size:7pt">${aeAnt}.º-${anoAnt||'—'}</th>`;
+          tableHtml+=`<th style="font-size:7pt">${aeAtual}.º-${anoAnt||'—'}</th>`;
+          tableHtml+=`<th style="font-size:7pt">${aeAtual}.º-${ano}</th>`;
+          tableHtml+=`<th class="rpt-teip"></th>`;
+        });
+        tableHtml+=`</tr></thead><tbody>`;
+        [1,2,3].forEach((p)=>{
+          tableHtml+=`<tr><td>${p}.º P</td>`;
+          discs.forEach(d=>{
+            tableHtml+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAnt,d,p):null)}</td>`;
+            tableHtml+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAtual,d,p):null)}</td>`;
+            tableHtml+=`<td class="${rptCls(getRes('c1',ano,aeAtual,d,p),meta)}">${rptFmt(getRes('c1',ano,aeAtual,d,p))}</td>`;
+            tableHtml+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td>`;
+          });
+          tableHtml+=`</tr>`;
+        });
+        tableHtml+=`</tbody></table>`;
+        tableHtml = forceTeipUniform(tableHtml, metaTxt);
+        pages.push({
+          titulo:`Departamentos — 1.º Ciclo — ${parLabel}${chunks.length>1?` (${ci+1}/${chunks.length})`:''}`,
+          html: tableHtml
+        });
+      });
+    });
+  });
+
+  function buildHtmlRest(depts){
     let html='';
     depts.forEach(dept=>{
       html+=`<div class="rpt-subtitle" style="color:${dept.cor}">${dept.nome}</div>`;
-      if(dept.tipo==='1ciclo'){
-        dept.pares.forEach((par,pi)=>{
-          const [aeAnt,aeAtual,parLabel]=par;
-          const discs=dept.discPorPar[pi];
-          const meta=(D.metas['c1']||{})[ano]??null;
-          const metaTxt=meta!==null?meta+'%':'—';
-          html+=`<div style="font-size:8pt;font-weight:700;margin:.2cm 0 .1cm">${parLabel}</div>`;
-          let tableHtml=`<table class="rpt-table"><thead><tr><th>Período</th>`;
-          discs.forEach(d=>tableHtml+=`<th colspan="3">${d}</th><th class="rpt-teip">TEIP</th>`);
-          tableHtml+=`</tr><tr><th></th>`;
-          discs.forEach(()=>{
-            tableHtml+=`<th style="font-size:7pt">${aeAnt}.º-${anoAnt||'—'}</th>`;
-            tableHtml+=`<th style="font-size:7pt">${aeAtual}.º-${anoAnt||'—'}</th>`;
-            tableHtml+=`<th style="font-size:7pt">${aeAtual}.º-${ano}</th>`;
-            tableHtml+=`<th class="rpt-teip"></th>`;
-          });
-          tableHtml+=`</tr></thead><tbody>`;
-          [1,2,3].forEach((p)=>{
-            tableHtml+=`<tr><td>${p}.º P</td>`;
-            discs.forEach(d=>{
-              tableHtml+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAnt,d,p):null)}</td>`;
-              tableHtml+=`<td>${rptFmt(anoAnt?getRes('c1',anoAnt,aeAtual,d,p):null)}</td>`;
-              tableHtml+=`<td class="${rptCls(getRes('c1',ano,aeAtual,d,p),meta)}">${rptFmt(getRes('c1',ano,aeAtual,d,p))}</td>`;
-              tableHtml+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td>`;
-            });
-            tableHtml+=`</tr>`;
-          });
-          tableHtml+=`</tbody></table>`;
-          html += forceTeipUniform(tableHtml, metaTxt);
+      dept.disciplinas.forEach(discObj=>{
+        const{nome:dNome,disc,anos:discAnos}=discObj;
+        html+=`<div style="font-size:8pt;font-weight:600;margin:.15cm 0 .05cm">${dNome}</div>`;
+        html+=`<table class="rpt-table"><thead><tr><th>Período</th>`;
+        discAnos.forEach(ae=>html+=`<th colspan="3">${ae}.º Ano</th>`);
+        html+=`</tr><tr><th></th>`;
+        discAnos.forEach(ae=>{
+          const ciclo=ae<=4?'c1':ae<=6?'c2':'c3';
+          const m=(D.metas[ciclo]||{})[ano]??null;
+          html+=`<th style="font-size:7pt">${anoAnt||'—'}</th>`;
+          html+=`<th style="font-size:7pt">${ano}</th>`;
+          html+=`<th class="rpt-teip" style="font-size:7pt">${m!==null?m+'%':'—'}</th>`;
         });
-      } else {
-        dept.disciplinas.forEach(discObj=>{
-          const{nome:dNome,disc,anos:discAnos}=discObj;
-          html+=`<div style="font-size:8pt;font-weight:600;margin:.15cm 0 .05cm">${dNome}</div>`;
-          html+=`<table class="rpt-table"><thead><tr><th>Período</th>`;
-          discAnos.forEach(ae=>html+=`<th colspan="3">${ae}.º Ano</th>`);
-          html+=`</tr><tr><th></th>`;
+        html+=`</tr></thead><tbody>`;
+        [1,2,3].forEach((p)=>{
+          html+=`<tr><td>${p}.º P</td>`;
           discAnos.forEach(ae=>{
             const ciclo=ae<=4?'c1':ae<=6?'c2':'c3';
-            const m=(D.metas[ciclo]||{})[ano]??null;
-            html+=`<th style="font-size:7pt">${anoAnt||'—'}</th>`;
-            html+=`<th style="font-size:7pt">${ano}</th>`;
-            html+=`<th class="rpt-teip" style="font-size:7pt">${m!==null?m+'%':'—'}</th>`;
+            const meta=(D.metas[ciclo]||{})[ano]??null;
+            const vA=anoAnt?getRes(ciclo,anoAnt,ae,disc,p):null;
+            const vB=getRes(ciclo,ano,ae,disc,p);
+            html+=`<td>${rptFmt(vA)}</td>`;
+            html+=`<td class="${rptCls(vB,meta)}">${rptFmt(vB)}</td>`;
+            html+=`<td class="rpt-teip" data-meta="${meta!==null?meta+'%':'—'}">${meta!==null?meta+'%':'—'}</td>`;
           });
-          html+=`</tr></thead><tbody>`;
-          [1,2,3].forEach((p)=>{
-            html+=`<tr><td>${p}.º P</td>`;
-            discAnos.forEach(ae=>{
-              const ciclo=ae<=4?'c1':ae<=6?'c2':'c3';
-              const meta=(D.metas[ciclo]||{})[ano]??null;
-              const vA=anoAnt?getRes(ciclo,anoAnt,ae,disc,p):null;
-              const vB=getRes(ciclo,ano,ae,disc,p);
-              html+=`<td>${rptFmt(vA)}</td>`;
-              html+=`<td class="${rptCls(vB,meta)}">${rptFmt(vB)}</td>`;
-              html+=`<td class="rpt-teip" data-meta="${meta!==null?meta+'%':'—'}">${meta!==null?meta+'%':'—'}</td>`;
-            });
-            html+=`</tr>`;
-          });
-          html+=`</tbody></table>`;
+          html+=`</tr>`;
         });
-      }
+        html+=`</tbody></table>`;
+      });
     });
     return html;
   }
 
-  if(depts1.length)    pages.push({titulo:'Departamentos — 1.º Ciclo',       html:buildHtml(depts1)});
-  if(deptsRest.length) pages.push({titulo:'Departamentos — 2.º e 3.º Ciclo', html:buildHtml(deptsRest)});
+  if(deptsRest.length) pages.push({titulo:'Departamentos — 2.º e 3.º Ciclo', html:buildHtmlRest(deptsRest)});
   if(!pages.length)    pages.push({titulo:'Departamentos', html:'<p>Sem dados.</p>'});
   return pages;
 }
