@@ -3621,19 +3621,19 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
         <th>1.º P</th><th>2.º P</th><th>3.º P</th>
         <th class="rpt-teip">${metaTxt}</th>
       </tr></thead><tbody>`;
-      const medAt=[];
+      const medAtP=[[],[],[]];
       discs.forEach(d=>{
         const vB=[1,2,3].map(p=>getRes(ciclo,ano,ae,d,p));
         if(vB.every(v=>v===null)) return;
-        vB.forEach(v=>{if(v!==null)medAt.push(v);});
+        vB.forEach((v,i)=>{if(v!==null)medAtP[i].push(v);});
         html+=`<tr><td class="left">${d}</td>`;
         vB.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
         html+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
       });
-      const mB=rptMedia(medAt);
-      html+=`<tr class="rpt-media"><td class="left">Média</td>
-        <td colspan="3">${rptFmt(mB)}</td>
-        <td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
+      const medsAt=medAtP.map(vals=>rptMedia(vals));
+      html+=`<tr class="rpt-media"><td class="left">Média por Período</td>`;
+      medsAt.forEach(m=>{ html+=`<td>${rptFmt(m)}</td>`; });
+      html+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
       html+=`</tbody></table>`;
     } else {
       html = `<table class="rpt-table"><thead><tr>
@@ -3647,23 +3647,23 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
         <th>1.º P</th><th>2.º P</th><th>3.º P</th>
         <th class="rpt-teip">${metaTxt}</th>
       </tr></thead><tbody>`;
-      const medAnt=[],medAt=[];
+      const medAntP=[[],[],[]],medAtP=[[],[],[]];
       discs.forEach(d=>{
         const vA=[1,2,3].map(p=>anoAnt&&aeAnt?getRes(ciclo,anoAnt,aeAnt,d,p):null);
         const vB=[1,2,3].map(p=>getRes(ciclo,ano,ae,d,p));
         // Skip rows with no data at all
         if(vA.every(v=>v===null) && vB.every(v=>v===null)) return;
-        vA.forEach(v=>{if(v!==null)medAnt.push(v);}); vB.forEach(v=>{if(v!==null)medAt.push(v);});
+        vA.forEach((v,i)=>{if(v!==null)medAntP[i].push(v);}); vB.forEach((v,i)=>{if(v!==null)medAtP[i].push(v);});
         html+=`<tr><td class="left">${d}</td>`;
         vA.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
         vB.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
         html+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
       });
-      const mA=rptMedia(medAnt), mB=rptMedia(medAt);
-      html+=`<tr class="rpt-media"><td class="left">Média</td>
-        <td colspan="3">${rptFmt(mA)}</td>
-        <td colspan="3">${rptFmt(mB)}</td>
-        <td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
+      const medsAnt=medAntP.map(vals=>rptMedia(vals)), medsAt=medAtP.map(vals=>rptMedia(vals));
+      html+=`<tr class="rpt-media"><td class="left">Média por Período</td>`;
+      medsAnt.forEach(m=>{ html+=`<td>${rptFmt(m)}</td>`; });
+      medsAt.forEach(m=>{ html+=`<td>${rptFmt(m)}</td>`; });
+      html+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
       html+=`</tbody></table>`;
     }
     html = forceTeipUniform(html, metaTxt);
@@ -3812,12 +3812,18 @@ function rptTaxaTable(){
       <th class="left">Turma</th>
       <th>1.º Período</th><th>2.º Período</th><th>3.º Período</th>
     </tr></thead><tbody>`;
+    const medP=[[],[],[]];
     turmasComDados.forEach(t=>{
       const v=[1,2,3].map(p=>getTaxaRes(ano,anoEsc,t,p));
+      v.forEach((vi,i)=>{if(vi!==null)medP[i].push(vi);});
       html+=`<tr><td class="left">${t}</td>`;
       v.forEach(vi=>html+=`<td class="${rptCls(vi,meta)}">${rptFmt(vi)}</td>`);
       html+=`</tr>`;
     });
+    const meds=medP.map(vals=>rptMedia(vals));
+    html+=`<tr class="rpt-media"><td class="left">Média por Período</td>`;
+    meds.forEach(m=>{ html+=`<td>${rptFmt(m)}</td>`; });
+    html+=`</tr>`;
     html+=`</tbody></table>`;
     if(nota) html+=`<p class="rpt-nota">* ${nota}</p>`;
   });
