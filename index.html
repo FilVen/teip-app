@@ -3693,6 +3693,17 @@ function rptSecTable(tipo){
       [1,2,3].forEach(p=>{const v=getResS(curso.id,ano,d,p); html+=`<td>${rptFmt(v)}</td>`;});
       html+=`</tr>`;
     });
+    if(discs.length){
+      const medAntP=[[],[],[]], medAtP=[[],[],[]];
+      discs.forEach(d=>{
+        if(cursoAnt){[1,2,3].forEach((p,i)=>{const v=getResS(cursoAnt.id,anoAnt,d,p); if(v!==null)medAntP[i].push(v);});}
+        [1,2,3].forEach((p,i)=>{const v=getResS(curso.id,ano,d,p); if(v!==null)medAtP[i].push(v);});
+      });
+      html+=`<tr class="rpt-media"><td class="left">Média por Período</td>`;
+      if(cursoAnt) medAntP.forEach(vals=>{ html+=`<td>${rptFmt(rptMedia(vals))}</td>`; });
+      medAtP.forEach(vals=>{ html+=`<td>${rptFmt(rptMedia(vals))}</td>`; });
+      html+=`</tr>`;
+    }
     html+=`</tbody></table>`;
     return {titulo:`${tipo==='CH'?'Secundário C-H':'Profissional'} — ${curso.nome}`, html};
   });
