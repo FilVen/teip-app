@@ -2168,7 +2168,7 @@ function detectOficina(raw){
 }
 
 // Find best matching discipline code for a raw name from filename
-function matchDisc(rawName, ciclo, anoEsc){
+function matchDiscRaw(rawName, ciclo, anoEsc){
   const raw = rawName.trim().toUpperCase();
   const rawN = normStr(raw);
 
@@ -2205,6 +2205,21 @@ function matchDisc(rawName, ciclo, anoEsc){
 
   // 5. Fallback
   return raw.slice(0,20);
+}
+
+// Wrapper: garante que nomes que são apenas um "alias" de uma disciplina já
+// usada neste ciclo (ex.: CIDDES == C. DESENVOL. no 1.º Ciclo) são sempre
+// resolvidos para o nome canónico do ciclo, evitando disciplinas duplicadas
+// ao importar.
+function matchDisc(rawName, ciclo, anoEsc){
+  const result = matchDiscRaw(rawName, ciclo, anoEsc);
+  const aliasMap = DISC_ALIAS[ciclo];
+  if(aliasMap){
+    for(const [canonical, aliases] of Object.entries(aliasMap)){
+      if(aliases.includes(result)) return canonical;
+    }
+  }
+  return result;
 }
 
 function parseFname(fname){
