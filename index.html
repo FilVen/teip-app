@@ -3720,10 +3720,13 @@ function rptDeptTable(){
     return out;
   }
 
-  // 1.º Ciclo: cada "par" de anos é dividido em várias páginas (máx. 4
-  // disciplinas por página) para a tabela nunca ficar demasiado larga e
-  // conteúdo cortado ao imprimir.
+  // 1.º Ciclo: cada "par" de anos é dividido em blocos de no máx. 4
+  // disciplinas (para a tabela nunca ficar demasiado larga), mas vários
+  // blocos são agrupados na MESMA página (até MAX_BLOCOS_POR_PAGINA) para
+  // reduzir o número total de páginas do relatório.
   const MAX_DISC_POR_PAGINA = 4;
+  const MAX_BLOCOS_POR_PAGINA = 3;
+  const blocos1 = []; // lista plana de { tableHtml } antes de paginar
   depts1.forEach(dept=>{
     dept.pares.forEach((par,pi)=>{
       const [aeAnt,aeAtual,parLabel]=par;
@@ -3756,13 +3759,20 @@ function rptDeptTable(){
         });
         tableHtml+=`</tbody></table>`;
         tableHtml = forceTeipUniform(tableHtml, metaTxt);
-        pages.push({
-          titulo:`Departamentos — 1.º Ciclo — ${parLabel}${chunks.length>1?` (${ci+1}/${chunks.length})`:''}`,
-          html: tableHtml
-        });
+        blocos1.push({ label:`${parLabel}${chunks.length>1?` (${ci+1}/${chunks.length})`:''}`, html: tableHtml });
       });
     });
   });
+
+  // Agrupa os blocos em páginas de MAX_BLOCOS_POR_PAGINA
+  for(let i=0; i<blocos1.length; i+=MAX_BLOCOS_POR_PAGINA){
+    const grupo = blocos1.slice(i, i+MAX_BLOCOS_POR_PAGINA);
+    const html = grupo.map(b=>b.html).join('<div style="margin-top:.35cm"></div>');
+    const titulo = grupo.length>1
+      ? `Departamentos — 1.º Ciclo — ${grupo[0].label} … ${grupo[grupo.length-1].label}`
+      : `Departamentos — 1.º Ciclo — ${grupo[0].label}`;
+    pages.push({ titulo, html });
+  }
 
   function buildHtmlRest(depts){
     let html='';
