@@ -1280,8 +1280,23 @@ function getAnoAnterior(a){ const i=D.anos.indexOf(a); return i>0?D.anos[i-1]:nu
 function anoEscAnterior(ae){ return ae>1?ae-1:null; }
 function getMeta(ciclo){ return (D.metas[ciclo]||{})[getAno()]??null; }
 
+// Disciplinas que são a mesma coisa mas têm nomes diferentes consoante o
+// ciclo (ex.: "C. DESENVOL." no 1.º Ciclo == "CIDDES" a partir do 5.º ano).
+// Isto evita que apareçam como disciplinas duplicadas nos relatórios.
+const DISC_ALIAS = {
+  'c1': { 'C. DESENVOL.': ['CIDDES','CIDADANIA E DESENVOLVIMENTO','CIDADANIA'] }
+};
 function getRes(ciclo,anoLetivo,anoEsc,disc,per){
-  return D.res[`${ciclo}|${anoLetivo}|${anoEsc}|${disc}|${per}`]??null;
+  const key = `${ciclo}|${anoLetivo}|${anoEsc}|${disc}|${per}`;
+  if(D.res[key]!==undefined) return D.res[key];
+  const aliases = DISC_ALIAS[ciclo]?.[disc];
+  if(aliases){
+    for(const alt of aliases){
+      const k2 = `${ciclo}|${anoLetivo}|${anoEsc}|${alt}|${per}`;
+      if(D.res[k2]!==undefined) return D.res[k2];
+    }
+  }
+  return null;
 }
 function setRes(ciclo,anoLetivo,anoEsc,disc,per,val){
   const k=`${ciclo}|${anoLetivo}|${anoEsc}|${disc}|${per}`;
@@ -1475,7 +1490,7 @@ function renderCiclo(ciclo){
   const anoAtual=getAno();
   const anoAnt=getAnoAnterior(anoAtual);
   const meta=getMeta(ciclo);
-  const anos=ciclo==='c1' ? CICLO_ANOS[ciclo].filter(ae=>ae>1) : CICLO_ANOS[ciclo];
+  const anos=CICLO_ANOS[ciclo];
   const periods=[1,2,3]; // always show all 3
   const pLabel=p=>`${p}.º P`;
 
@@ -1485,50 +1500,61 @@ function renderCiclo(ciclo){
     const aeAnt=anoEscAnterior(ae);
     const discsAtual=(D.disc[ciclo]?.[ae]||[]);
     const discAnt=aeAnt?(D.disc[ciclo]?.[aeAnt]||discsAtual):discsAtual;
+    // 1.º Ano do 1.º Ciclo não tem ano anterior para comparar — mostra só
+    // o quadro do ano atual, sem o quadro do ano transato.
+    const semAnoAnterior = (ciclo==='c1' && ae===1);
 
     if(idx>0) html+='<hr class="pair-divider">';
 
     html+=`<div class="ano-bloco">`;
-    html+=`<div class="pair-year-header">
-      <div class="pyh ant">📋 ${anoAnt||'Ano anterior'} — ${aeAnt?ANO_NOME(aeAnt):ANO_NOME(ae)}</div>
-      <div class="pyh cur">📊 ${anoAtual} — ${ANO_NOME(ae)}</div>
-    </div>`;
+    if(semAnoAnterior){
+      html+=`<div class="pair-year-header" style="grid-template-columns:1fr">
+        <div class="pyh cur">📊 ${anoAtual} — ${ANO_NOME(ae)}</div>
+      </div>`;
+    } else {
+      html+=`<div class="pair-year-header">
+        <div class="pyh ant">📋 ${anoAnt||'Ano anterior'} — ${aeAnt?ANO_NOME(aeAnt):ANO_NOME(ae)}</div>
+        <div class="pyh cur">📊 ${anoAtual} — ${ANO_NOME(ae)}</div>
+      </div>`;
+    }
 
-    html+=`<div class="pair-wrap">`;
+    html+=`<div class="pair-wrap"${semAnoAnterior?' style="grid-template-columns:1fr"':''}>`;
 
-    // === LEFT: ano anterior ===
-    html+=`<div class="side-table-wrap">
-      <div class="side-label">
-        <span>${anoAnt||'—'}</span>
-        <span style="opacity:.75;font-size:.68rem">• ${aeAnt?ANO_NOME(aeAnt):ANO_NOME(ae)}</span>
-      </div>
-      <table><thead><tr>
-        <th class="left">Disciplina</th>
-        <th>1.º P</th><th>2.º P</th><th>3.º P</th>
-        <th class="teip-cell">TEIP</th>
-      </tr></thead><tbody>`;
+    if(!semAnoAnterior){
+      // === LEFT: ano anterior ===
+      html+=`<div class="side-table-wrap">
+        <div class="side-label">
+          <span>${anoAnt||'—'}</span>
+          <span style="opacity:.75;font-size:.68rem">• ${aeAnt?ANO_NOME(aeAnt):ANO_NOME(ae)}</span>
+        </div>
+        <table><thead><tr>
+          <th class="left">Disciplina</th>
+          <th>1.º P</th><th>2.º P</th><th>3.º P</th>
+          <th class="teip-cell">TEIP</th>
+        </tr></thead><tbody>`;
 
-    // per-period media accumulators for left
-    const medP=[{vals:[]},{vals:[]},{vals:[]}];
-    discAnt.forEach(d=>{
-      html+=`<tr><td class="disc">${d}</td>`;
-      [1,2,3].forEach((p,i)=>{
-        const v=anoAnt&&aeAnt?getRes(ciclo,anoAnt,aeAnt,d,p):null;
-        if(v!==null) medP[i].vals.push(parseFloat(v));
-        html+=`<td class="${cls(v,meta)}">${fmt(v)}</td>`;
+      // per-period media accumulators for left
+      const medP=[{vals:[]},{vals:[]},{vals:[]}];
+      discAnt.forEach(d=>{
+        html+=`<tr><td class="disc">${d}</td>`;
+        [1,2,3].forEach((p,i)=>{
+          const v=anoAnt&&aeAnt?getRes(ciclo,anoAnt,aeAnt,d,p):null;
+          if(v!==null) medP[i].vals.push(parseFloat(v));
+          html+=`<td class="${cls(v,meta)}">${fmt(v)}</td>`;
+        });
+        html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td>`;
+        html+=`</tr>`;
       });
+
+      const medsAnt=medP.map(m=>calcMedia(m.vals));
+      html+=`<tr class="avg-row"><td class="disc">Média período</td>`;
+      medsAnt.forEach(m=>{ html+=`<td class="${cls(m,meta)}">${m!==null?m.toFixed(2)+'%':'—'}</td>`; });
       html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td>`;
       html+=`</tr>`;
-    });
+      html+=`</tbody></table></div>`;
+    }
 
-    const medsAnt=medP.map(m=>calcMedia(m.vals));
-    html+=`<tr class="avg-row"><td class="disc">Média período</td>`;
-    medsAnt.forEach(m=>{ html+=`<td class="${cls(m,meta)}">${m!==null?m.toFixed(2)+'%':'—'}</td>`; });
-    html+=`<td class="teip-cell">${meta!==null?meta+'%':'—'}</td>`;
-    html+=`</tr>`;
-    html+=`</tbody></table></div>`;
-
-    // === RIGHT: ano atual ===
+    // === RIGHT (ou única): ano atual ===
     html+=`<div class="side-table-wrap">
       <div class="side-label atual">
         <span>${anoAtual}</span>
@@ -3534,58 +3560,97 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
   const anosEsc = CICLO_ANOS[ciclo];
   const pages = [];
   anosEsc.forEach(ae=>{
-    const aeAnt = anoAnt ? ae-1 : null;
+    // 1.º Ano do 1.º Ciclo não tem ano anterior para comparar.
+    const semAnoAnterior = (ciclo==='c1' && ae===1);
+    const aeAnt = (anoAnt && !semAnoAnterior) ? ae-1 : null;
 
     // Get disc list from D.disc as base
     const discsBase = D.disc[ciclo]?.[ae] || [];
 
+    // Nomes que são apenas um "alias" de uma disciplina já existente em
+    // discsBase (ex.: CIDDES == C. DESENVOL. no 1.º Ciclo) — não devem
+    // aparecer como disciplinas extra duplicadas.
+    const aliasNames = new Set();
+    discsBase.forEach(db=>{
+      const al = DISC_ALIAS[ciclo]?.[db];
+      if(al) al.forEach(a=>aliasNames.add(a));
+    });
+
     // Also find any disciplines with actual data in D.res not in discsBase
     const prefix = `${ciclo}|${ano}|${ae}|`;
-    const prefixAnt = anoAnt ? `${ciclo}|${anoAnt}|${aeAnt}|` : null;
+    const prefixAnt = aeAnt ? `${ciclo}|${anoAnt}|${aeAnt}|` : null;
     const extraDiscs = new Set();
     Object.keys(D.res).forEach(k=>{
       if(k.startsWith(prefix)){
         const d = k.split('|')[3];
-        if(!discsBase.includes(d)) extraDiscs.add(d);
+        if(!discsBase.includes(d) && !aliasNames.has(d)) extraDiscs.add(d);
       }
       if(prefixAnt && k.startsWith(prefixAnt)){
         const d = k.split('|')[3];
-        if(!discsBase.includes(d)) extraDiscs.add(d);
+        if(!discsBase.includes(d) && !aliasNames.has(d)) extraDiscs.add(d);
       }
     });
     const discs = [...discsBase, ...extraDiscs];
     if(!discs.length) return;
 
     const metaTxt = (meta!==null && meta!==undefined && meta!=='') ? (meta+'%') : '—';
-    let html = `<table class="rpt-table"><thead><tr>
-      <th class="left" style="width:140px">Disciplina</th>
-      <th colspan="3">${anoAnt||'—'} — ${aeAnt?aeAnt+'.º Ano':'—'}</th>
-      <th colspan="3">${ano} — ${ae}.º Ano</th>
-      <th class="rpt-teip">Meta TEIP</th>
-    </tr><tr>
-      <th class="left"></th>
-      <th>1.º P</th><th>2.º P</th><th>3.º P</th>
-      <th>1.º P</th><th>2.º P</th><th>3.º P</th>
-      <th class="rpt-teip">${metaTxt}</th>
-    </tr></thead><tbody>`;
-    const medAnt=[],medAt=[];
-    discs.forEach(d=>{
-      const vA=[1,2,3].map(p=>anoAnt&&aeAnt?getRes(ciclo,anoAnt,aeAnt,d,p):null);
-      const vB=[1,2,3].map(p=>getRes(ciclo,ano,ae,d,p));
-      // Skip rows with no data at all
-      if(vA.every(v=>v===null) && vB.every(v=>v===null)) return;
-      vA.forEach(v=>{if(v!==null)medAnt.push(v);}); vB.forEach(v=>{if(v!==null)medAt.push(v);});
-      html+=`<tr><td class="left">${d}</td>`;
-      vA.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
-      vB.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
-      html+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
-    });
-    const mA=rptMedia(medAnt), mB=rptMedia(medAt);
-    html+=`<tr class="rpt-media"><td class="left">Média</td>
-      <td colspan="3">${rptFmt(mA)}</td>
-      <td colspan="3">${rptFmt(mB)}</td>
-      <td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
-    html+=`</tbody></table>`;
+    let html;
+    if(semAnoAnterior){
+      // Só uma tabela, com o ano atual — sem colunas de ano transato.
+      html = `<table class="rpt-table"><thead><tr>
+        <th class="left" style="width:140px">Disciplina</th>
+        <th colspan="3">${ano} — ${ae}.º Ano</th>
+        <th class="rpt-teip">Meta TEIP</th>
+      </tr><tr>
+        <th class="left"></th>
+        <th>1.º P</th><th>2.º P</th><th>3.º P</th>
+        <th class="rpt-teip">${metaTxt}</th>
+      </tr></thead><tbody>`;
+      const medAt=[];
+      discs.forEach(d=>{
+        const vB=[1,2,3].map(p=>getRes(ciclo,ano,ae,d,p));
+        if(vB.every(v=>v===null)) return;
+        vB.forEach(v=>{if(v!==null)medAt.push(v);});
+        html+=`<tr><td class="left">${d}</td>`;
+        vB.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
+        html+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
+      });
+      const mB=rptMedia(medAt);
+      html+=`<tr class="rpt-media"><td class="left">Média</td>
+        <td colspan="3">${rptFmt(mB)}</td>
+        <td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
+      html+=`</tbody></table>`;
+    } else {
+      html = `<table class="rpt-table"><thead><tr>
+        <th class="left" style="width:140px">Disciplina</th>
+        <th colspan="3">${anoAnt||'—'} — ${aeAnt?aeAnt+'.º Ano':'—'}</th>
+        <th colspan="3">${ano} — ${ae}.º Ano</th>
+        <th class="rpt-teip">Meta TEIP</th>
+      </tr><tr>
+        <th class="left"></th>
+        <th>1.º P</th><th>2.º P</th><th>3.º P</th>
+        <th>1.º P</th><th>2.º P</th><th>3.º P</th>
+        <th class="rpt-teip">${metaTxt}</th>
+      </tr></thead><tbody>`;
+      const medAnt=[],medAt=[];
+      discs.forEach(d=>{
+        const vA=[1,2,3].map(p=>anoAnt&&aeAnt?getRes(ciclo,anoAnt,aeAnt,d,p):null);
+        const vB=[1,2,3].map(p=>getRes(ciclo,ano,ae,d,p));
+        // Skip rows with no data at all
+        if(vA.every(v=>v===null) && vB.every(v=>v===null)) return;
+        vA.forEach(v=>{if(v!==null)medAnt.push(v);}); vB.forEach(v=>{if(v!==null)medAt.push(v);});
+        html+=`<tr><td class="left">${d}</td>`;
+        vA.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
+        vB.forEach(v=>html+=`<td class="${rptCls(v,meta)}">${rptFmt(v)}</td>`);
+        html+=`<td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
+      });
+      const mA=rptMedia(medAnt), mB=rptMedia(medAt);
+      html+=`<tr class="rpt-media"><td class="left">Média</td>
+        <td colspan="3">${rptFmt(mA)}</td>
+        <td colspan="3">${rptFmt(mB)}</td>
+        <td class="rpt-teip" data-meta="${metaTxt}">${metaTxt}</td></tr>`;
+      html+=`</tbody></table>`;
+    }
     html = forceTeipUniform(html, metaTxt);
     pages.push({titulo:`${CICLO_NOME[ciclo]} — ${ae}.º Ano`, html});
   });
