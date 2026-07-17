@@ -1174,16 +1174,15 @@ function applyLoadedData(data){
     if(c.metas) D.metas = c.metas;
     if(c.secCursos) D.secCursos = c.secCursos;
     if(c.turmasTaxa) D.turmasTaxa = c.turmasTaxa;
-    // Merge disc: always start from DEFAULT_DISC, add any extra saved disciplines
+    // Usa a lista de disciplinas exatamente como foi guardada no GitHub —
+    // não voltar a juntar com a lista de exemplo (isso repunha sempre as
+    // disciplinas apagadas, já que este sync corre a cada arranque).
     if(c.disc){
       ['c1','c2','c3'].forEach(ciclo=>{
         Object.keys(c.disc[ciclo]||{}).forEach(aeStr=>{
           const ae = parseInt(aeStr);  // JSON keys are strings, DEFAULT_DISC uses numbers
-          const saved = c.disc[ciclo][aeStr] || [];
-          const dflt  = (DEFAULT_DISC[ciclo]||{})[ae] || [];
-          const merged = [...dflt];
-          saved.forEach(d => { if(!merged.includes(d)) merged.push(d); });
-          D.disc[ciclo][ae] = merged;
+          const saved = c.disc[ciclo][aeStr];
+          if(Array.isArray(saved)) D.disc[ciclo][ae] = normalizeDiscList(ciclo, saved);
         });
       });
     }
