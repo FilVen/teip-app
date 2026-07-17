@@ -3656,33 +3656,12 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
     const semAnoAnterior = (ciclo==='c1' && ae===1);
     const aeAnt = (anoAnt && !semAnoAnterior) ? ae-1 : null;
 
-    // Get disc list from D.disc as base
-    const discsBase = D.disc[ciclo]?.[ae] || [];
-
-    // Nomes que são apenas um "alias" de uma disciplina já existente em
-    // discsBase (ex.: CIDDES == C. DESENVOL. no 1.º Ciclo) — não devem
-    // aparecer como disciplinas extra duplicadas.
-    const aliasNames = new Set();
-    discsBase.forEach(db=>{
-      const al = DISC_ALIAS[ciclo]?.[db];
-      if(al) al.forEach(a=>aliasNames.add(a));
-    });
-
-    // Also find any disciplines with actual data in D.res not in discsBase
-    const prefix = `${ciclo}|${ano}|${ae}|`;
-    const prefixAnt = aeAnt ? `${ciclo}|${anoAnt}|${aeAnt}|` : null;
-    const extraDiscs = new Set();
-    Object.keys(D.res).forEach(k=>{
-      if(k.startsWith(prefix)){
-        const d = k.split('|')[3];
-        if(!discsBase.includes(d) && !aliasNames.has(d)) extraDiscs.add(d);
-      }
-      if(prefixAnt && k.startsWith(prefixAnt)){
-        const d = k.split('|')[3];
-        if(!discsBase.includes(d) && !aliasNames.has(d)) extraDiscs.add(d);
-      }
-    });
-    const discs = [...discsBase, ...extraDiscs];
+    // Get disc list from D.disc as base — usa exatamente a mesma lista que
+    // aparece no ecrã. (Antes também se procurava no histórico de dados por
+    // disciplinas "extra" não configuradas, mas isso fazia disciplinas já
+    // removidas voltarem a aparecer só nos relatórios, porque os dados
+    // antigos são mantidos de propósito ao remover uma disciplina.)
+    const discs = D.disc[ciclo]?.[ae] || [];
     if(!discs.length) return;
 
     const metaTxt = (meta!==null && meta!==undefined && meta!=='') ? (meta+'%') : '—';
