@@ -131,12 +131,12 @@ td.empty{color:#9ca3af;font-size:.7rem}
   #print-wrapper { display: block !important; }
   .rpt-page { page-break-after: always; }
   .rpt-page:last-child { page-break-after: avoid; }
-  .rpt-title { font-size: 13pt; font-weight: 700; color: #1a3a6b; margin-bottom: .2cm; }
-  .rpt-subtitle { font-size: 10pt; font-weight: 700; color: #1a3a6b; margin: .3cm 0 .12cm; border-bottom: 1.5px solid #1a3a6b; padding-bottom: 2px; }
-  .rpt-table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: .3cm; }
-  .rpt-table th { background: #1a3a6b !important; color: #fff !important; padding: 3px 5px; text-align: center; border: 1px solid #1a3a6b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  .rpt-title { font-size: 13pt; font-weight: 700; color: #1a3a6b; margin-bottom: .12cm; }
+  .rpt-subtitle { font-size: 9pt; font-weight: 700; color: #1a3a6b; margin: .1cm 0 .04cm; border-bottom: 1px solid #1a3a6b; padding-bottom: 1px; }
+  .rpt-table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: .1cm; line-height: 1.05; }
+  .rpt-table th { background: #1a3a6b !important; color: #fff !important; padding: 1px 3px; text-align: center; border: 1px solid #1a3a6b; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
   .rpt-table th.left { text-align: left; }
-  .rpt-table td { padding: 3px 5px; border: 1px solid #d1d5db; text-align: center; }
+  .rpt-table td { padding: 1px 3px; border: 1px solid #d1d5db; text-align: center; }
   .rpt-table td.left { text-align: left; font-weight: 600; }
   .rpt-table tr:nth-child(even) td { background: #f8fafc !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 
@@ -180,12 +180,12 @@ td.empty{color:#9ca3af;font-size:.7rem}
     -webkit-print-color-adjust: exact;
     print-color-adjust: exact;
   }
-  .rpt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2.5px solid #1a3a6b; padding-bottom: .2cm; margin-bottom: .35cm; }
+  .rpt-header { display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #1a3a6b; padding-bottom: .08cm; margin-bottom: .12cm; }
   .rpt-meta { font-size: 7.5pt; color: #6b7280; margin-top: .1cm; }
   .rpt-nota { font-size: 7.5pt; color: #6b7280; font-style: italic; margin-top: .1cm; }
   .rpt-badge { display: inline-block; background: #dbeafe; color: #1e3a8a; font-size: 7pt; padding: 1px 5px; border-radius: 3px; font-weight: 700; }
 }
-@page { margin: 1.2cm; size: A4 landscape; }
+@page { margin: 0.6cm; size: A4 landscape; }
 </style>
 </head>
 <body>
@@ -368,11 +368,12 @@ td.empty{color:#9ca3af;font-size:.7rem}
   <div class="modal" style="max-width:560px">
     <h2>📊 Importar Taxa de Positivas</h2>
     <p style="font-size:.78rem;color:#6b7280;margin-bottom:.75rem">
-      Selecciona um ou mais ficheiros Excel. Cada ficheiro deve ter as turmas nas linhas e os períodos nas colunas.<br>
+      Selecciona um ou mais ficheiros Excel. Cada ficheiro deve ter as turmas nas linhas e os períodos nas colunas — ou pode ser um <strong>"Guião para Análise de Resultados Escolares"</strong> (modelo TEIP), do qual a taxa de positivas é extraída automaticamente.<br>
       Formatos aceites:<br>
       <code style="font-size:.72rem">5º - Taxa Positivas - 2025_26.xlsx</code><br>
       <code style="font-size:.72rem">1º Ciclo - Taxa - 2025_26.xlsx</code><br>
-      O ano escolar é detectado pelo nome do ficheiro (5º, 6º, etc.) ou podes seleccioná-lo manualmente.
+      <code style="font-size:.72rem">1º A Guião de Resultados -TEIP.xlsx</code><br>
+      O ano escolar é detectado pelo nome do ficheiro (5º, 6º, etc.) ou podes seleccioná-lo manualmente. Para os Guiões TEIP, a turma é lida também do conteúdo do ficheiro ("Turma X"), não só do nome.
     </p>
     <div style="display:flex;gap:.5rem;align-items:flex-end;margin-bottom:.6rem">
       <div class="form-group" style="margin:0">
@@ -3469,6 +3470,36 @@ function getTurmas(ano, anoEsc){
   return ((D.turmasTaxa||{})[ano]||{})[anoEsc]||[];
 }
 
+function openTaxaTurmaModal(){
+  const ano = getAno();
+  const el = document.getElementById('taxa-turmas-list');
+  let html = '';
+  TAXA_TEIP_GRUPOS.forEach(grupo=>{
+    const turmas = getTurmas(ano, grupo.anoEsc);
+    html += `<div class="form-group" style="margin-bottom:.6rem">
+      <label style="font-size:.75rem;font-weight:600">${grupo.label}</label>
+      <input type="text" data-anoesc="${grupo.anoEsc}" value="${turmas.join(', ')}"
+             placeholder="ex: A, B, C" style="width:100%">
+    </div>`;
+  });
+  el.innerHTML = html;
+  openModal('m-taxa-turma');
+}
+
+function salvarTurmasTaxa(){
+  const ano = getAno();
+  const el = document.getElementById('taxa-turmas-list');
+  if(!D.turmasTaxa[ano]) D.turmasTaxa[ano] = {};
+  el.querySelectorAll('input[data-anoesc]').forEach(inp=>{
+    const anoEsc = parseInt(inp.dataset.anoesc);
+    const turmas = inp.value.split(',').map(s=>s.trim().toUpperCase()).filter(Boolean);
+    D.turmasTaxa[ano][anoEsc] = turmas;
+  });
+  save();
+  closeModal('m-taxa-turma');
+  renderTaxa();
+}
+
 function renderTaxa(){
   const el=document.getElementById('body-taxa');
   if(!el) return;
@@ -3537,6 +3568,23 @@ function editTaxa(ano, anoEsc, turma){
 // ============================================================
 
 function rptFmt(v){ return v!==null&&v!==undefined ? parseFloat(v).toFixed(1)+'%' : '—'; }
+// Organiza uma lista de blocos HTML em "linhas" explícitas de N colunas,
+// usando float dentro de cada linha isoladamente. Isto evita o bug clássico
+// do float em que um bloco baixo ao lado de um bloco alto faz o bloco
+// seguinte encaixar-se numa posição errada e sobrepor-se aos anteriores.
+function gridRows(blocos, cols){
+  cols = cols || 2;
+  const width = (Math.floor(100/cols) - 1) + '%';
+  let html = '';
+  for(let i=0; i<blocos.length; i+=cols){
+    const linha = blocos.slice(i, i+cols);
+    const cells = linha.map(b=>
+      `<div style="float:left;width:${width};box-sizing:border-box;padding-right:.3cm">${b}</div>`
+    ).join('');
+    html += `<div style="overflow:hidden">${cells}</div>`;
+  }
+  return html;
+}
 function rptCls(v, meta){
   if(v===null||v===undefined||meta===null||meta===undefined) return '';
   return parseFloat(v)>=parseFloat(meta) ? 'rpt-above' : 'rpt-below';
@@ -3563,7 +3611,7 @@ function rptHeader(titulo, anoLetivo, anoAnt){
   </div>`;
 }
 
-const RPT_LEGEND = `<div style="margin-top:.3cm;display:flex;gap:.5cm;font-size:7pt;align-items:center">
+const RPT_LEGEND = `<div style="margin-top:.15cm;display:flex;gap:.5cm;font-size:7pt;align-items:center">
   <span style="background:#16a34a;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">■ Acima da meta</span>
   <span style="background:#dc2626;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">■ Abaixo da meta</span>
   <span style="background:#1a3a6b;color:#fff;padding:2px 6px;border-radius:3px;font-weight:700">■ Meta TEIP</span>
@@ -3572,7 +3620,7 @@ const RPT_LEGEND = `<div style="margin-top:.3cm;display:flex;gap:.5cm;font-size:
 
 function rptCicloTable(ciclo, ano, anoAnt, meta){
   const anosEsc = CICLO_ANOS[ciclo];
-  const pages = [];
+  const blocos = []; // { ae, html } — depois combinados numa só página por ciclo
   anosEsc.forEach(ae=>{
     // 1.º Ano do 1.º Ciclo não tem ano anterior para comparar.
     const semAnoAnterior = (ciclo==='c1' && ae===1);
@@ -3612,7 +3660,7 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
     if(semAnoAnterior){
       // Só uma tabela, com o ano atual — sem colunas de ano transato.
       html = `<table class="rpt-table"><thead><tr>
-        <th class="left" style="width:140px">Disciplina</th>
+        <th class="left" style="width:105px">Disciplina</th>
         <th colspan="3">${ano} — ${ae}.º Ano</th>
         <th class="rpt-teip">Meta TEIP</th>
       </tr><tr>
@@ -3636,7 +3684,7 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
       html+=`</tbody></table>`;
     } else {
       html = `<table class="rpt-table"><thead><tr>
-        <th class="left" style="width:140px">Disciplina</th>
+        <th class="left" style="width:105px">Disciplina</th>
         <th colspan="3">${anoAnt||'—'} — ${aeAnt?aeAnt+'.º Ano':'—'}</th>
         <th colspan="3">${ano} — ${ae}.º Ano</th>
         <th class="rpt-teip">Meta TEIP</th>
@@ -3666,21 +3714,31 @@ function rptCicloTable(ciclo, ano, anoAnt, meta){
       html+=`</tbody></table>`;
     }
     html = forceTeipUniform(html, metaTxt);
-    pages.push({titulo:`${CICLO_NOME[ciclo]} — ${ae}.º Ano`, html});
+    blocos.push({ ae, html: `<div class="rpt-subtitle">${ae}.º Ano</div>${html}` });
   });
-  return pages;
+
+  // Junta todos os anos do ciclo na mesma página (poupa papel), organizados
+  // em grelha de 2 colunas (em vez de empilhados numa só coluna) — usa
+  // float em vez de CSS grid para máxima compatibilidade com motores de
+  // impressão/PDF.
+  if(!blocos.length) return [{titulo:`${CICLO_NOME[ciclo]}`, html:'<p style="font-size:8pt;color:#6b7280">Sem dados.</p>'}];
+  return [{
+    titulo: `${CICLO_NOME[ciclo]} — Todos os anos`,
+    html: gridRows(blocos.map(b=>b.html), 2)
+  }];
 }
 
 function rptSecTable(tipo){
   const ano=getAno(), anoAnt=getAnoAnterior(ano);
   const cursos=(D.secCursos[ano]||[]).filter(c=>c.tipo===tipo);
   if(!cursos.length) return [{titulo:'Sem cursos', html:'<p style="font-size:8pt;color:#6b7280">Sem cursos configurados.</p>'}];
-  return cursos.map(curso=>{
+  const tipoLabel = tipo==='CH'?'Secundário C-H':'Profissional';
+  const blocos = cursos.map(curso=>{
     const cursoAnt=getSecCursoAnt(curso,anoAnt);
     const discs=curso.disc||[];
     let html=`<div class="rpt-subtitle">${curso.nome}${curso.turma?` <span class="rpt-badge">${curso.turma}</span>`:''}</div>`;
     html+=`<table class="rpt-table"><thead><tr>
-      <th class="left" style="width:140px">Disciplina</th>`;
+      <th class="left" style="width:105px">Disciplina</th>`;
     if(cursoAnt) html+=`<th colspan="3">${anoAnt} — ${cursoAnt.nome}</th>`;
     html+=`<th colspan="3">${ano} — ${curso.nome}</th></tr>
     <tr><th class="left"></th>`;
@@ -3704,8 +3762,28 @@ function rptSecTable(tipo){
       html+=`</tr>`;
     }
     html+=`</tbody></table>`;
-    return {titulo:`${tipo==='CH'?'Secundário C-H':'Profissional'} — ${curso.nome}`, html};
+    // Cursos com comparação ao ano anterior têm o dobro das colunas (7 em
+    // vez de 4) — são demasiado largos para caber a 49% sem quebrar linha,
+    // por isso ficam com a largura toda da página.
+    return { nome: curso.nome, html, wide: !!cursoAnt };
   });
+
+  // Junta os cursos numa única página: os "largos" (com comparação ao ano
+  // anterior) ocupam a página toda cada um; os "estreitos" (sem comparação)
+  // ficam emparelhados 2 a 2, lado a lado.
+  let pageHtml = '';
+  let i = 0;
+  while(i < blocos.length){
+    if(blocos[i].wide){
+      pageHtml += blocos[i].html;
+      i++;
+    } else {
+      const grupo = [];
+      while(i < blocos.length && !blocos[i].wide){ grupo.push(blocos[i].html); i++; }
+      pageHtml += gridRows(grupo, 2);
+    }
+  }
+  return [{ titulo: `${tipoLabel} — Todos os cursos`, html: pageHtml }];
 }
 
 function rptDeptTable(){
@@ -3818,7 +3896,7 @@ function rptDeptTable(){
 
 function rptTaxaTable(){
   const ano=getAno();
-  let html='';
+  const blocos=[];
   TAXA_TEIP_GRUPOS.forEach(grupo=>{
     const{label,anoEsc,ciclo,nota}=grupo;
     const meta=getMeta(ciclo);
@@ -3827,7 +3905,7 @@ function rptTaxaTable(){
     // Only include turmas that have at least one value
     const turmasComDados = turmas.filter(t=>[1,2,3].some(p=>getTaxaRes(ano,anoEsc,t,p)!==null));
     if(!turmasComDados.length) return;
-    html+=`<div class="rpt-subtitle">${label} — Meta TEIP: ${meta!==null?meta+'%':'—'}</div>`;
+    let html=`<div class="rpt-subtitle">${label} — Meta TEIP: ${meta!==null?meta+'%':'—'}</div>`;
     html+=`<table class="rpt-table"><thead><tr>
       <th class="left">Turma</th>
       <th>1.º Período</th><th>2.º Período</th><th>3.º Período</th>
@@ -3846,8 +3924,10 @@ function rptTaxaTable(){
     html+=`</tr>`;
     html+=`</tbody></table>`;
     if(nota) html+=`<p class="rpt-nota">* ${nota}</p>`;
+    blocos.push(html);
   });
-  return html;
+  if(!blocos.length) return '<p style="font-size:8pt;color:#6b7280">Sem dados.</p>';
+  return gridRows(blocos, 2);
 }
 
 function gerarRelatorio(tipo){
@@ -4097,7 +4177,53 @@ function processTaxaFiles(files){
         if(anoEsc===null){ log.innerHTML+=`<div style="color:#f59e0b">⚠ <strong>${file.name}</strong> — ano escolar não detectado. Selecciona manualmente.</div>`; return; }
 
         const mTurma = fnameClean.match(/[-–]\s*([A-Z])\s*[-–]/) || fnameClean.match(/\s([A-Z])\s*[-–]/) || fnameClean.match(/[-–]\s*([A-Z])\s*$/);
-        const turmaNome = mTurma ? mTurma[1].toUpperCase() : null;
+        let turmaNome = mTurma ? mTurma[1].toUpperCase() : null;
+
+        // Formato "Guião para Análise de Resultados Escolares" (modelo TEIP):
+        // não tem uma grelha simples de turmas × períodos — a taxa de
+        // positivas está numa secção específica ("classificação igual ou
+        // superior a 3 a todas as disciplinas"), com a % duas linhas abaixo.
+        let guiaoIdx = -1;
+        for(let i=0;i<rows.length;i++){
+          const c0 = rows[i]?.[0];
+          if(c0 && /classifica[cç][aã]o\s+igual\s+ou\s+superior\s+a\s+3\s+a\s+todas/i.test(String(c0))){ guiaoIdx = i; break; }
+        }
+        if(guiaoIdx !== -1){
+          const pctRow = rows[guiaoIdx+2] || [];
+          if(!turmaNome){
+            for(const r of rows){
+              const c0 = r?.[0];
+              if(c0){
+                const m = String(c0).match(/turma\s+([A-Za-z]\d*)/i);
+                if(m){ turmaNome = m[1].toUpperCase(); break; }
+              }
+            }
+          }
+          if(!turmaNome){ log.innerHTML+=`<div style="color:#f59e0b">⚠ <strong>${file.name}</strong> — não foi possível identificar a turma. Inclui-a no nome do ficheiro (ex: "- A -") ou confirma que a folha tem "Turma X".</div>`; return; }
+          const p1=pctRow[1], p2=pctRow[2], p3=pctRow[3];
+          if(p1===undefined&&p2===undefined&&p3===undefined){ log.innerHTML+=`<div style="color:#dc2626">✗ <strong>${file.name}</strong> — não encontrei os valores de % junto ao cabeçalho de taxa de positivas</div>`; return; }
+          const taxaDataRows = [[turmaNome, p1, p2, p3]];
+          const colToPeriod = {1:1,2:2,3:3};
+          if(!D.turmasTaxa[anoLetivo]) D.turmasTaxa[anoLetivo]={};
+          if(!D.turmasTaxa[anoLetivo][anoEsc]) D.turmasTaxa[anoLetivo][anoEsc]=[];
+          let imported=0; const turmasLog=[];
+          taxaDataRows.forEach(row=>{
+            const turma=String(row[0]).trim().toUpperCase();
+            if(!D.turmasTaxa[anoLetivo][anoEsc].includes(turma)) D.turmasTaxa[anoLetivo][anoEsc].push(turma);
+            Object.entries(colToPeriod).forEach(([ci,per])=>{
+              const v = row[parseInt(ci)];
+              if(v!==null&&v!==undefined&&v!==''&&!isNaN(parseFloat(v))&&parseFloat(v)>0){
+                const k=`${anoLetivo}|${anoEsc}|${turma}|${per}`;
+                userTaxaOverrides[k]=parseFloat(v); D.taxaRes[k]=parseFloat(v); imported++;
+              }
+            });
+            turmasLog.push(turma);
+          });
+          const lbl=anoEsc===0?'1.º Ciclo':`${anoEsc}.º Ano`;
+          log.innerHTML+=`<div style="color:#065f46">✓ <strong>${file.name}</strong> (Guião TEIP) — ${lbl} · ${anoLetivo} · Turma: ${turmasLog.join(', ')} · ${imported} valor(es)</div>`;
+          save(); renderTaxa();
+          return;
+        }
 
         const headerRow = rows[0] || [];
         const colToPeriod = {};
