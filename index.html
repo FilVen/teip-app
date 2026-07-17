@@ -967,16 +967,15 @@ let userTaxaOverrides = {};
       ['anoAtual','anos','secCursos','turmasTaxa','metas'].forEach(k=>{
         if(p[k]!==undefined) D[k]=p[k];
       });
-      // Merge disc: always keep DEFAULT_DISC as base, add extras from saved
+      // Usa a lista de disciplinas exatamente como foi guardada — não voltar
+      // a juntar com a lista de exemplo (isso fazia disciplinas apagadas
+      // reaparecerem sempre que a página era recarregada).
       if(p.disc){
         ['c1','c2','c3'].forEach(ciclo=>{
           Object.keys(p.disc[ciclo]||{}).forEach(aeStr=>{
             const ae = parseInt(aeStr);
-            const saved = p.disc[ciclo][aeStr]||[];
-            const dflt  = (DEFAULT_DISC[ciclo]||{})[ae]||[];
-            const merged = [...dflt];
-            saved.forEach(d=>{ if(!merged.includes(d)) merged.push(d); });
-            D.disc[ciclo][ae]=merged;
+            const saved = p.disc[ciclo][aeStr];
+            if(Array.isArray(saved)) D.disc[ciclo][ae] = saved;
           });
         });
       }
@@ -1284,8 +1283,37 @@ function getMeta(ciclo){ return (D.metas[ciclo]||{})[getAno()]??null; }
 // ciclo (ex.: "C. DESENVOL." no 1.º Ciclo == "CIDDES" a partir do 5.º ano).
 // Isto evita que apareçam como disciplinas duplicadas nos relatórios.
 const DISC_ALIAS = {
-  'c1': { 'C. DESENVOL.': ['CIDDES','CIDADANIA E DESENVOLVIMENTO','CIDADANIA'] }
+  'c1': { 'C. DESENVOL.': ['CIDDES','CIDADANIA E DESENVOLVIMENTO','CIDADANIA'] },
+  'c3': { 'OFP': ['OFPORT','OFICINA DE PORTUGUÊS','OF. PORTUGUÊS','OF PORTUGUÊS'] }
 };
+// Resolve nomes-alias para o nome canónico do ciclo e remove duplicados de
+// uma lista de disciplinas, preservando a ordem original.
+function normalizeDiscList(ciclo, list){
+  if(!Array.isArray(list)) return list;
+  const aliasMap = DISC_ALIAS[ciclo];
+  const toCanonical = (name)=>{
+    if(!aliasMap) return name;
+    for(const [canonical, aliases] of Object.entries(aliasMap)){
+      if(aliases.includes(name)) return canonical;
+    }
+    return name;
+  };
+  const seen = new Set();
+  const out = [];
+  list.forEach(d=>{
+    const c = toCanonical(d);
+    if(!seen.has(c)){ seen.add(c); out.push(c); }
+  });
+  return out;
+}
+// Limpa já as listas de disciplinas carregadas (resolve aliases e remove
+// duplicados), corrigindo entradas antigas duplicadas (ex.: OFP + OFPORT)
+// que já tivessem ficado gravadas antes desta correção existir.
+['c1','c2','c3'].forEach(ciclo=>{
+  Object.keys(D.disc[ciclo]||{}).forEach(aeStr=>{
+    D.disc[ciclo][aeStr] = normalizeDiscList(ciclo, D.disc[ciclo][aeStr]);
+  });
+});
 function getRes(ciclo,anoLetivo,anoEsc,disc,per){
   const key = `${ciclo}|${anoLetivo}|${anoEsc}|${disc}|${per}`;
   if(D.res[key]!==undefined) return D.res[key];
@@ -1931,6 +1959,7 @@ function addDisc(ciclo){
   if(!D.disc[ciclo]) D.disc[ciclo]={};
   if(!D.disc[ciclo][ae]) D.disc[ciclo][ae]=[];
   if(!D.disc[ciclo][ae].includes(nome)) D.disc[ciclo][ae].push(nome);
+  D.disc[ciclo][ae]=normalizeDiscList(ciclo, D.disc[ciclo][ae]);
   save(); renderDiscLists(); render();
   document.getElementById(`nd-${sfx}`).value='';
 }
@@ -2513,6 +2542,7 @@ function processFiles(files){
           if(!D.disc[ciclo]) D.disc[ciclo]={};
           if(!D.disc[ciclo][anoEsc]) D.disc[ciclo][anoEsc]=[];
           if(!D.disc[ciclo][anoEsc].includes(disc)) D.disc[ciclo][anoEsc].push(disc);
+          D.disc[ciclo][anoEsc]=normalizeDiscList(ciclo, D.disc[ciclo][anoEsc]);
         }
 
         // Ensure anoLetivo in D.anos
@@ -2633,6 +2663,7 @@ function addManual(){
   if(!D.disc[ciclo]) D.disc[ciclo]={};
   if(!D.disc[ciclo][ae]) D.disc[ciclo][ae]=[];
   if(!D.disc[ciclo][ae].includes(disc)) D.disc[ciclo][ae].push(disc);
+  D.disc[ciclo][ae]=normalizeDiscList(ciclo, D.disc[ciclo][ae]);
   setRes(ciclo,ano,ae,disc,per,parseFloat(taxa));
   if(taxaAnt!==''&&anoAnt){const aeA=anoEscAnterior(ae);if(aeA)setRes(ciclo,anoAnt,aeA,disc,per,parseFloat(taxaAnt));}
   render();
